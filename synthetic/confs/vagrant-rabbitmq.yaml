@@ -4,7 +4,7 @@ box: bento/debian-9.1
 resources:
   machines:
     - roles:
-        - amqp-queue
+        - bus
         - telegraf
         - chrony
       flavor: tiny
@@ -31,7 +31,7 @@ resources:
         - control_network
         - internal_network
     - roles:
-        - amqp-control
+        - control-bus
         - ombt-control
         - control
         - registry

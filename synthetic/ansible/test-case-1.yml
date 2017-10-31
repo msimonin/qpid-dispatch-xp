@@ -1,5 +1,5 @@
 ---
-# (avk) First, gathering facts of all nodes is necessary to have access to variables of others nodes (such as hostvars[groups['rabbitmq-control'][0])
+# (avk) First, gathering facts of all nodes is necessary to have access to variables of others nodes (such as hostvars[groups['control-bus'][0])
 - name: Gathering facts of all nodes
   hosts: all
   tasks:
