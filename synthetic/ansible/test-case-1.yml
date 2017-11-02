@@ -19,3 +19,4 @@
   hosts: ombt-control
   roles:
     - ombt
+
