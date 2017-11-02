@@ -1,8 +1,0 @@
----
-- name: Install and start docker image "ombt" in server mode
-  shell: >
-         docker run -d -ti beyondtheclouds/ombt
-         --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}
-         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }} rpc-server
-
-

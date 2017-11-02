@@ -5,17 +5,22 @@
   tasks:
   - setup:
 
+
+
 - name: Deploy Ombt-server
   hosts: ombt-server
   roles:
-    - ombt-server
+    - ombt
 
 - name: Deploy Ombt-client
   hosts: ombt-client
   roles:
-    - ombt-client
+    - ombt
 
 - name: Deploy Ombt-control
   hosts: ombt-control
   roles:
-    - ombt-control
+    - ombt
+
+
+
