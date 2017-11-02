@@ -22,8 +22,9 @@
   hosts: grafana
   roles:
     - grafana
-#
-#- name: Deploy Control-bus
-#  hosts: control-bus
-#  roles:
-#    - rabbitmq
+
+- name: Control-bus deployment
+  hosts: control-bus
+  roles:
+    - rabbitmq
+

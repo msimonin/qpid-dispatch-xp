@@ -5,8 +5,6 @@
   tasks:
   - setup:
 
-
-
 - name: Deploy Ombt-server
   hosts: ombt-server
   roles:
@@ -17,10 +15,13 @@
   roles:
     - ombt
 
+## Wait for the control-bus, ombt-clients and ombt-servers to be started.
+#- name: Waiting for control-bus
+#  wait_for:
+#   host: "{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
+#   port: "5672"
+
 - name: Deploy Ombt-control
   hosts: ombt-control
   roles:
     - ombt
-
-
-
