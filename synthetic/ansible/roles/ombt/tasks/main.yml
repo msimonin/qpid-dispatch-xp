@@ -1,4 +1,15 @@
 ---
+# ombt-servers, ombt-clients, and ombt-control require alive queues to connect to.
+- name: Check if the control-bus is started
+  wait_for:
+   host: "{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
+   port: "5672"
+
+- name: Check if the message bus is started.
+  wait_for:
+   host: "{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
+   port: "5672"
+
 - name: Install and start docker image "ombt" in client mode
   shell: >
          docker run -d -ti beyondtheclouds/ombt
