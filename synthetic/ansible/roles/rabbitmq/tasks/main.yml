@@ -5,3 +5,10 @@
     image: rabbitmq
     network_mode: host
     state: started
+
+- name: Wait for the bus to be started
+  wait_for:
+   host: "{{ hostvars[inventory_hostname]['ansible_' + control_network]['ipv4']['address'] }}"
+   port: "{{ rabbitmq_port }}"
+
+

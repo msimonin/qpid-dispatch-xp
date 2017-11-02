@@ -1,32 +1,32 @@
 ---
 # ombt-servers, ombt-clients, and ombt-control require alive queues to connect to.
-- name: Check if the control-bus is started
-  wait_for:
-   host: "{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
-   port: "{{ amqp_port }}"
-
-- name: Check if the message bus is started.
-  wait_for:
-   host: "{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
-   port: "{{ amqp_port }}"
+#- name: Check if the control-bus is started
+#  wait_for:
+#   host: "{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
+#   port: "{{ rabbitmq_port }}"
+#
+#- name: Check if the message bus is started.
+#  wait_for:
+#   host: "{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
+#   port: "{{ rabbitmq_port }}"
 
 - name: Install and start docker image "ombt" in client mode
   shell: >
          docker run -d -ti beyondtheclouds/ombt
-         --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ amqp_port }}
-         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ amqp_port }} rpc-client
+         --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
+         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-client
   when: inventory_hostname in groups['ombt-client']
 
 - name: Install and start docker image "ombt" in server mode
   shell: >
          docker run -d -ti beyondtheclouds/ombt
-         --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ amqp_port }}
-         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ amqp_port }} rpc-server
+         --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
+         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-server
   when: inventory_hostname in groups['ombt-server']
 
 - name: Install and start docker image "ombt" as a controller
   shell: >
          docker run -d -ti beyondtheclouds/ombt
-         --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ amqp_port }}
-         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ amqp_port }} controller rpc-call --calls 10
+         --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
+         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} controller rpc-call --calls 10
   when: inventory_hostname in groups['ombt-control']
