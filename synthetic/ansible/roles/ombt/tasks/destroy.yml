@@ -1,0 +1,32 @@
+---
+- name: Stop ombt containers on all ombt-nodes
+  shell: docker ps -a | awk '{ print $1,$2 }' | grep beyondtheclouds/ombt | awk '{print $1 }' | xargs -I {} docker stop {}
+  when: inventory_hostname in groups['ombt-client'] or inventory_hostname in groups['ombt-server'] or inventory_hostname in groups['ombt-control']
+
+- name: Remove ombt containers on all ombt-nodes
+  shell: docker ps -a | awk '{ print $1,$2 }' | grep beyondtheclouds/ombt | awk '{print $1 }' | xargs -I {} docker rm {}
+  when: inventory_hostname in groups['ombt-client'] or inventory_hostname in groups['ombt-server'] or inventory_hostname in groups['ombt-control']
+#- name: Destroying ombt-client
+#  docker_container:
+#    name: ombt-client-1
+#    state: absent
+#    force_kill: yes
+#  when: inventory_hostname in groups['ombt-client']
+#
+#- name: Destroying ombt-server
+#  docker_container:
+#    name: ombt-server-1
+#    state: absent
+#    force_kill: yes
+#  when: inventory_hostname in groups['ombt-server']
+#
+#- name: Destroying ombt-control
+#  docker_container:
+#    name: ombt-controller
+#    state: absent
+#    force_kill: yes
+#  when: inventory_hostname in groups['ombt-control']
+
+#- name: Clear docker logs on control-node
+#  shell: truncate -s 0 /var/lib/docker/containers/*/*-json.log
+#  when: inventory_hostname in groups['ombt-control']

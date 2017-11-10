@@ -61,12 +61,16 @@ def prepare():
     help="Number of servers that will de deployed")
 @click.option("--call_type",
     default="rpc_call",
-    help="rpc_call (blocking) or rpc_cast (non blocking) ")
+    help="Rpc_call (blocking) or rpc_cast (non blocking) ")
 @click.option("--nbr_calls",
     default="100",
-    help="number of calls/cast to execute ")
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls):
-    t.test_case_1(nbr_clients=nbr_clients, nbr_servers=nbr_servers, call_type=call_type, nbr_calls=nbr_calls)
+    help="Number of calls/cast to execute ")
+@click.option("--delay",
+    default="0",
+    help="Delay in seconds between each call/cast (default 0)")
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, delay):
+    t.test_case_1(nbr_clients=nbr_clients, nbr_servers=nbr_servers, call_type=call_type,
+                  nbr_calls=nbr_calls, delay=delay)
 
 @cli.command()
 def destroy():
