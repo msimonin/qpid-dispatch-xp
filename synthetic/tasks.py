@@ -25,6 +25,7 @@ VERSION="beyondtheclouds/ombt:latest"
 BACKUP_DIR="backup"
 LENGTH="1024"
 EXECUTOR="threading"
+DELAY="0.250"
 
 
 tc = {
@@ -304,6 +305,7 @@ def test_case_1(
     backup_dir=BACKUP_DIR,
     length=LENGTH,
     executor=EXECUTOR,
+    delay=DELAY,
     env=None, **kwargs):
 
     iteration_id = str("-".join([
@@ -353,7 +355,8 @@ def test_case_1(
             "nbr_calls": nbr_calls,
             "pause": pause,
             "timeout": timeout,
-            "length": length
+            "length": length,
+            "delay": delay
         }
     }]
     # Below we build the specific variables for each client/server

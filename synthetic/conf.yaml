@@ -6,9 +6,10 @@ campaign:
         nbr_calls: [100]
         pause: [0]
         timeout: [8000]
-        version: ["beyondtheclouds/ombt:latest"]
+        version: ["avankemp/ombt:avk_delay"]
         length: [1024]
         executor: ["eventlet"]
+        delay: [10.500]
 g5k:
     reservation: "2017-12-06 14:40:00"
     walltime: "2:00:00"
