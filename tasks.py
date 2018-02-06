@@ -11,26 +11,26 @@ from qpid_generator.configurations import get_conf
 import os
 import yaml
 
-BROKER="qdr"
+BROKER = "qdr"
 
 # DEFAULT PARAMETERS
-NBR_CLIENTS=1
-NBR_SERVERS=1
-CALL_TYPE="rpc-call"
-NBR_CALLS="100"
-PAUSE=0
-TIMEOUT=60
-VERSION="beyondtheclouds/ombt:latest"
-BACKUP_DIR="backup"
-LENGTH="1024"
-EXECUTOR="threading"
-
+NBR_CLIENTS = 1
+NBR_SERVERS = 1
+CALL_TYPE = "rpc-call"
+NBR_CALLS = "100"
+PAUSE = 0
+TIMEOUT = 60
+VERSION = "beyondtheclouds/ombt:latest"
+BACKUP_DIR = "backup"
+LENGTH = "1024"
+EXECUTOR = "threading"
 
 tc = {
     "enable": True,
     "default_delay": "20ms",
     "default_rate": "1gbit",
 }
+
 
 class BusConf(object):
     """Common class to modelize bus configuration"""
@@ -52,13 +52,16 @@ class BusConf(object):
     def to_dict(self):
         return self.conf
 
+
 class RabbitMQConf(BusConf):
 
     def __init__(self, conf):
         super(RabbitMQConf, self).__init__(conf)
 
-    def get_listener(self):
-        """Returns the listener for rabbitmq."""
+    def get_listener(self, **kwargs):
+        """Returns the listener for rabbitmq.
+        :param kwargs:
+        """
         return {
             "machine": self.conf["machine"],
             "port": self.conf["port"]
@@ -67,18 +70,20 @@ class RabbitMQConf(BusConf):
     def get_transport(self):
         return "rabbit"
 
+
 class QdrConf(BusConf):
 
     def __init__(self, conf):
         super(QdrConf, self).__init__(conf)
         self.transport = "amqp"
 
-    def get_listener(self):
+    def get_listener(self, **kwargs):
         """Returns the listener for qdr.
 
         This is where external client can connect to.
         The contract is that this kind of listener has the role "normal"
         and there is exactly one such listener per router
+        :param kwargs:
         """
         listeners = self.conf["listeners"]
         listener = [l for l in listeners if l["role"] == "normal"]
@@ -90,6 +95,7 @@ class QdrConf(BusConf):
 
     def get_transport(self):
         return "amqp"
+
 
 class OmbtAgent(object):
     """Modelize an ombt agent"""
@@ -112,7 +118,7 @@ class OmbtAgent(object):
         self.name = self.agent_id
         # where to log inside the container
         self.docker_log = "/home/ombt/ombt-data/agent.log"
-        # where to log ouside the container (mount)
+        # where to log outside the container (mount)
         self.log = os.path.join("/tmp/ombt-data", "%s.log" % self.agent_id)
         # the command to run
         self.command = self.get_command()
@@ -136,10 +142,10 @@ class OmbtAgent(object):
             for agent in agents:
                 listener = agent.get_listener()
                 transport = agent.transport
-                connection.append("{{ hostvars['%s']['ansible_' + control_network]['ipv4']['address'] }}:%s" % (listener["machine"], listener["port"]))
+                connection.append("{{ hostvars['%s']['ansible_' + control_network]['ipv4']['address'] }}:%s" % (
+                listener["machine"], listener["port"]))
             connections[agent_type] = "%s://%s" % (transport, ",".join(connection))
         return "--control %s --url %s" % (connections["control"], connections["url"])
-
 
     def get_command(self):
         """Build the command for the ombt agent."""
@@ -153,11 +159,11 @@ class OmbtAgent(object):
         return command
 
 
-
 class OmbtClient(OmbtAgent):
 
     def get_type(self):
         return "rpc-client"
+
 
 class OmbtServer(OmbtAgent):
 
@@ -173,6 +179,7 @@ class OmbtServer(OmbtAgent):
     def get_type(self):
         return "rpc-server"
 
+
 class OmbtController(OmbtAgent):
 
     def __init__(self, **kwargs):
@@ -184,7 +191,6 @@ class OmbtController(OmbtAgent):
         super(OmbtController, self).__init__(**kwargs)
         # that smells a bit
         self.detach = False
-
 
     def get_type(self):
         return "controller"
@@ -208,7 +214,7 @@ class OmbtController(OmbtAgent):
 # vagrant you can't mix the two of them in the future we might want to
 # factorize it and have a switch on the command line to choose.
 @enostask(new=True)
-def g5k(env=None, broker=BROKER, force=False, config=None,  **kwargs):
+def g5k(env=None, broker=BROKER, force=False, config=None, **kwargs):
     provider = G5k(config["g5k"])
     roles, networks = provider.init(force_deploy=force)
     env["config"] = config
@@ -227,7 +233,7 @@ def vagrant(env=None, broker=BROKER, force=False, config=None, **kwargs):
 
 @enostask(new=True)
 def chameleon(env=None, broker=BROKER, force=False, config=None, **kwargs):
-    provider =Chameleonkvm(config["chameleon"])
+    provider = Chameleonkvm(config["chameleon"])
     roles, networks = provider.init(force_deploy=force)
     env["config"] = config
     env["roles"] = roles
@@ -239,7 +245,7 @@ def inventory(env=None, **kwargs):
     roles = env["roles"]
     networks = env["networks"]
     env["inventory"] = os.path.join(env["resultdir"], "hosts")
-    generate_inventory(roles, networks, env["inventory"] , check_networks=True)
+    generate_inventory(roles, networks, env["inventory"], check_networks=True)
 
 
 @enostask()
@@ -286,7 +292,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
     control_bus_conf = [{
         "port": 5672,
         "management_port": 15672,
-        "machine" : machines[0]
+        "machine": machines[0]
     }]
     env.update({"control_bus_conf": [RabbitMQConf(c) for c in control_bus_conf]})
     ansible_control_bus_conf = {"control_bus_conf": control_bus_conf}
@@ -306,18 +312,17 @@ def prepare(env=None, broker=BROKER, **kwargs):
 
 @enostask()
 def test_case_1(
-    nbr_clients=NBR_CLIENTS,
-    nbr_servers=NBR_SERVERS,
-    call_type=CALL_TYPE,
-    nbr_calls=NBR_CALLS,
-    pause=PAUSE,
-    timeout=TIMEOUT,
-    version=VERSION,
-    backup_dir=BACKUP_DIR,
-    length=LENGTH,
-    executor=EXECUTOR,
-    env=None, **kwargs):
-
+        nbr_clients=NBR_CLIENTS,
+        nbr_servers=NBR_SERVERS,
+        call_type=CALL_TYPE,
+        nbr_calls=NBR_CALLS,
+        pause=PAUSE,
+        timeout=TIMEOUT,
+        version=VERSION,
+        backup_dir=BACKUP_DIR,
+        length=LENGTH,
+        executor=EXECUTOR,
+        env=None, **kwargs):
     iteration_id = str("-".join([
         "nbr_servers__%s" % nbr_servers,
         "nbr_clients__%s" % nbr_clients,
@@ -336,45 +341,45 @@ def test_case_1(
     }
 
     descs = [
-    {
-        "agent_type": "rpc-client",
-        "number": int(nbr_clients),
-        "machines": env["roles"]["ombt-client"],
-        "klass": OmbtClient,
-        "kwargs": {
-            "timeout": timeout,
-        }
-    },
-    {
-        "agent_type": "rpc-server",
-        "number": int(nbr_servers),
-        "machines": env["roles"]["ombt-server"],
-        "klass": OmbtServer,
-        "kwargs": {
-            "timeout": timeout,
-            "executor": executor
-        }
-    },
-    {
-        "agent_type": "controller",
-        "number": 1,
-        "machines": env["roles"]["ombt-control"],
-        "klass": OmbtController,
-        "kwargs": {
-            "call_type": call_type,
-            "nbr_calls": nbr_calls,
-            "pause": pause,
-            "timeout": timeout,
-            "length": length
-        }
-    }]
+        {
+            "agent_type": "rpc-client",
+            "number": int(nbr_clients),
+            "machines": env["roles"]["ombt-client"],
+            "klass": OmbtClient,
+            "kwargs": {
+                "timeout": timeout,
+            }
+        },
+        {
+            "agent_type": "rpc-server",
+            "number": int(nbr_servers),
+            "machines": env["roles"]["ombt-server"],
+            "klass": OmbtServer,
+            "kwargs": {
+                "timeout": timeout,
+                "executor": executor
+            }
+        },
+        {
+            "agent_type": "controller",
+            "number": 1,
+            "machines": env["roles"]["ombt-control"],
+            "klass": OmbtController,
+            "kwargs": {
+                "call_type": call_type,
+                "nbr_calls": nbr_calls,
+                "pause": pause,
+                "timeout": timeout,
+                "length": length
+            }
+        }]
     # Below we build the specific variables for each client/server
     # ombt_conf = {
     #   "machine01": [confs],
     # ...
     #
     # }
-    ombt_confs= {}
+    ombt_confs = {}
     bus_conf = env["bus_conf"]
     control_bus_conf = env["control_bus_conf"]
     for agent_desc in descs:
@@ -442,4 +447,3 @@ def destroy(env=None, **kwargs):
     })
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
     run_ansible(["ansible/ombt.yml"], env["inventory"], extra_vars=extra_vars)
-
