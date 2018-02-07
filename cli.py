@@ -18,6 +18,17 @@ PROVIDERS = {
 }
 
 
+def load_config(path):
+    """
+    Read configuration from a file in YAML format.
+    :param path: Path of the configuration file.
+    :return:
+    """
+    with open(path) as file:
+        configuration = yaml.safe_load(file)
+    return configuration
+
+
 # cli part
 @click.group()
 def cli():
@@ -37,9 +48,7 @@ def cli():
 @click.option("--env",
               help="Use this environment directory instead of the default one")
 def deploy(broker, provider, force, conf, env):
-    config = {}
-    with open(conf) as f:
-        config = yaml.load(f)
+    config = load_config(conf)
     p = PROVIDERS[provider]
     p(broker=broker, force=force, config=config, env=env)
     t.inventory()
@@ -72,9 +81,7 @@ def prepare():
     t.prepare()
 
 
-@cli.command(help="""
-    Runs the test case 1 : one single large (distributed) target.
-    """)
+@cli.command(help="Runs the test case 1: one single large (distributed) target.")
 @click.option("--nbr_clients",
               default=t.NBR_CLIENTS,
               help="Number of clients that will de deployed")
@@ -106,6 +113,43 @@ def prepare():
 def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length, executor):
     t.test_case_1(nbr_clients=nbr_clients,
                   nbr_servers=nbr_servers,
+                  call_type=call_type,
+                  nbr_calls=nbr_calls,
+                  pause=pause,
+                  timeout=timeout,
+                  version=version,
+                  length=length,
+                  executor=executor)
+
+
+@cli.command(help="Runs the test case 2: multiple distributed targets.")
+@click.option("--nbr_topics",
+              default=t.NBR_TOPICS,
+              help="Number of topics (according to ombt) that will de deployed")
+@click.option("--call_type",
+              default=t.CALL_TYPE,
+              type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
+              help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
+@click.option("--nbr_calls",
+              default=t.NBR_CALLS,
+              help="Number of calls/cast to execute [client]")
+@click.option("--pause",
+              default=t.PAUSE,
+              help="Pause in second between each call [client]")
+@click.option("--timeout",
+              default=t.TIMEOUT,
+              help="Total time in second of the benchmark [controller]")
+@click.option("--length",
+              default=t.LENGTH,
+              help="The size of the payload in bytes")
+@click.option("--executor",
+              default=t.EXECUTOR,
+              help="type of executor the server will use")
+@click.option("--version",
+              default=t.VERSION,
+              help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
+def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, version, length, executor):
+    t.test_case_2(nbr_topics=nbr_topics,
                   call_type=call_type,
                   nbr_calls=nbr_calls,
                   pause=pause,
@@ -189,10 +233,7 @@ def campaign(broker, provider, conf, test, env):
         with open("%s/params.json" % test, 'w') as outfile:
             json.dump(all_params, outfile)
 
-    # Loading the conf
-    config = {}
-    with open(conf) as f:
-        config = yaml.load(f)
+    config = load_config(conf)
     parameters = config["campaign"][test]
 
     sweeps = sweep(parameters)
