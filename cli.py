@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import click
 from execo_engine import sweep, ParamSweeper
 import logging
@@ -24,8 +25,8 @@ def load_config(path):
     :param path: Path of the configuration file.
     :return:
     """
-    with open(path) as file:
-        configuration = yaml.safe_load(file)
+    with open(path) as f:
+        configuration = yaml.safe_load(f)
     return configuration
 
 
@@ -84,10 +85,13 @@ def prepare():
 @cli.command(help="Runs the test case 1: one single large (distributed) target.")
 @click.option("--nbr_clients",
               default=t.NBR_CLIENTS,
-              help="Number of clients that will de deployed")
+              help="Number of clients that will be deployed")
 @click.option("--nbr_servers",
               default=t.NBR_SERVERS,
-              help="Number of servers that will de deployed")
+              help="Number of servers that will be deployed")
+@click.option("--topics",
+              nbr_topics=t.NBR_TOPICS,
+              help="Number of topics that will set")
 @click.option("--call_type",
               default=t.CALL_TYPE,
               type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
@@ -110,46 +114,10 @@ def prepare():
 @click.option("--version",
               default=t.VERSION,
               help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length, executor):
+def test_case_1(nbr_clients, nbr_servers, nbr_topics, call_type, nbr_calls, pause, timeout, version, length, executor):
     t.test_case_1(nbr_clients=nbr_clients,
                   nbr_servers=nbr_servers,
-                  call_type=call_type,
-                  nbr_calls=nbr_calls,
-                  pause=pause,
-                  timeout=timeout,
-                  version=version,
-                  length=length,
-                  executor=executor)
-
-
-@cli.command(help="Runs the test case 2: multiple distributed targets.")
-@click.option("--nbr_topics",
-              default=t.NBR_TOPICS,
-              help="Number of topics (according to ombt) that will de deployed")
-@click.option("--call_type",
-              default=t.CALL_TYPE,
-              type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
-              help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
-@click.option("--nbr_calls",
-              default=t.NBR_CALLS,
-              help="Number of calls/cast to execute [client]")
-@click.option("--pause",
-              default=t.PAUSE,
-              help="Pause in second between each call [client]")
-@click.option("--timeout",
-              default=t.TIMEOUT,
-              help="Total time in second of the benchmark [controller]")
-@click.option("--length",
-              default=t.LENGTH,
-              help="The size of the payload in bytes")
-@click.option("--executor",
-              default=t.EXECUTOR,
-              help="type of executor the server will use")
-@click.option("--version",
-              default=t.VERSION,
-              help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
-def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, version, length, executor):
-    t.test_case_2(nbr_topics=nbr_topics,
+                  nbr_topics=nbr_topics,
                   call_type=call_type,
                   nbr_calls=nbr_calls,
                   pause=pause,

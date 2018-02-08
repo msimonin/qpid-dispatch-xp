@@ -114,7 +114,7 @@ class OmbtAgent(object):
         self.agent_type = self.get_type()
         # docker
         self.detach = True
-
+        self.topic = kwargs["topic"]
         # calculated attr
         self.name = self.agent_id
         # where to log inside the container
@@ -320,6 +320,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
 def test_case_1(
         nbr_clients=NBR_CLIENTS,
         nbr_servers=NBR_SERVERS,
+        nbr_topics=NBR_TOPICS,
         call_type=CALL_TYPE,
         nbr_calls=NBR_CALLS,
         pause=PAUSE,
@@ -354,6 +355,7 @@ def test_case_1(
             "klass": OmbtClient,
             "kwargs": {
                 "timeout": timeout,
+                "topic": "topic"
             }
         },
         {
@@ -363,7 +365,8 @@ def test_case_1(
             "klass": OmbtServer,
             "kwargs": {
                 "timeout": timeout,
-                "executor": executor
+                "executor": executor,
+                "topic": "topic"
             }
         },
         {
@@ -376,7 +379,8 @@ def test_case_1(
                 "nbr_calls": nbr_calls,
                 "pause": pause,
                 "timeout": timeout,
-                "length": length
+                "length": length,
+                "topic": "topic"
             }
         }]
     # Below we build the specific variables for each client/server
@@ -415,99 +419,6 @@ def test_case_1(
 
     extra_vars.update({'ombt_confs': ansible_ombt_confs})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
-    # saving the conf
-    env["ombt_confs"] = ombt_confs
-
-
-@enostask()
-def test_case_2(
-        nbr_topics=NBR_TOPICS,
-        call_type=CALL_TYPE,
-        nbr_calls=NBR_CALLS,
-        pause=PAUSE,
-        timeout=TIMEOUT,
-        version=VERSION,
-        backup_dir=BACKUP_DIR,
-        length=LENGTH,
-        executor=EXECUTOR,
-        env=None, **kwargs):
-    iteration_id = '-'.join([
-        "nbr_topics__%s" % nbr_topics,
-        "call_type__%s" % call_type,
-        "nbr_calls__%s" % nbr_calls,
-        "pause__%s" % pause])
-    backup_dir = os.path.join(get_current_directory(), backup_dir)
-    # TODO use python API
-    os.system("mkdir -p %s" % backup_dir)
-    extra_vars = {
-        'backup_dir': backup_dir,
-        'ombt_version': version
-    }
-
-    descs = [
-        {
-            "agent_type": "rpc-client",
-            "number": int(nbr_topics),
-            "machines": env["roles"]["ombt-client"],
-            "klass": OmbtClient,
-            "kwargs": {
-                "timeout": timeout,
-            }
-        },
-        {
-            "agent_type": "rpc-server",
-            "number": int(nbr_topics),
-            "machines": env["roles"]["ombt-server"],
-            "klass": OmbtServer,
-            "kwargs": {
-                "timeout": timeout,
-                "executor": executor
-            }
-        },
-        {
-            "agent_type": "controller",
-            "number": 1,
-            "machines": env["roles"]["ombt-control"],
-            "klass": OmbtController,
-            "kwargs": {
-                "call_type": call_type,
-                "nbr_calls": nbr_calls,
-                "pause": pause,
-                "timeout": timeout,
-                "length": length
-            }
-        }]
-
-    ombt_confs = {}
-    bus_conf = env["bus_conf"]
-    control_bus_conf = env["control_bus_conf"]
-    for agent_desc in descs:
-        machines = agent_desc["machines"]
-        # make sure all the machines appears in the ombt_confs
-        for machine in machines:
-            ombt_confs.setdefault(machine.alias, [])
-        for agent_index in range(agent_desc["number"]):
-            agent_id = "{}-{}-{}".format(agent_desc["agent_type"], agent_index, iteration_id)
-            # choose a machine
-            machine = machines[agent_index % len(machines)].alias
-            # choose a bus agent
-            bus_agent = bus_conf[agent_index % len(bus_conf)]
-            control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
-            kwargs = agent_desc["kwargs"]
-            kwargs.update({
-                "agent_id": agent_id,
-                "machine": machine,
-                "bus_agents": [bus_agent],
-                "control_agents": [control_agent]  # TODO
-            })
-            ombt_confs[machine].append(agent_desc["klass"](**kwargs))
-
-        ansible_ombt_confs = {}
-    for m, confs in ombt_confs.items():
-        ansible_ombt_confs[m] = [o.to_dict() for o in confs]
-
-    extra_vars.update({'ombt_confs': ansible_ombt_confs})
-    run_ansible(["ansible/test_case_2.yml"], env["inventory"], extra_vars=extra_vars)
     # saving the conf
     env["ombt_confs"] = ombt_confs
 
