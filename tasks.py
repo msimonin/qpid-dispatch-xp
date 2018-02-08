@@ -414,13 +414,13 @@ def test_case_1(
         for machine in machines:
             ombt_confs.setdefault(machine.alias, [])
         for agent_index in range(agent_desc["number"]):
-            agent_id = "%s-%s-%s" % (agent_desc["agent_type"], agent_index, iteration_id)
+            # choose a topic
+            topic = topics[agent_index % len(topics)]
+            agent_id = "%s-%s-%s-%s" % (agent_desc["agent_type"], agent_index, topic, iteration_id)
             # choose a machine
             machine = machines[agent_index % len(machines)].alias
             # choose a bus agent
             bus_agent = bus_conf[agent_index % len(bus_conf)]
-            # choose a topic
-            topic = topics[agent_index % len(topics)]
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
             kwargs.update({
@@ -437,6 +437,10 @@ def test_case_1(
         ansible_ombt_confs[m] = [o.to_dict() for o in confs]
 
     extra_vars.update({'ombt_confs': ansible_ombt_confs})
+
+    import ipdb
+    ipdb.set_trace()
+
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
     # saving the conf
     env["ombt_confs"] = ombt_confs
