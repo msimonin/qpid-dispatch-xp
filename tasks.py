@@ -346,6 +346,7 @@ def test_case_1(
     iteration_id = str("-".join([
         "nbr_servers__%s" % nbr_servers,
         "nbr_clients__%s" % nbr_clients,
+        "nbr_topics__%s" % nbr_topics,
         "call_type__%s" % call_type,
         "nbr_calls__%s" % nbr_calls,
         "pause__%s" % pause]))

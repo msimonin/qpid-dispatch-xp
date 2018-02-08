@@ -151,7 +151,7 @@ def backup():
 @click.option("--env",
               help="Use this environment directory instead of the default one")
 def campaign(broker, provider, conf, test, env):
-
+    # TODO change the implementation out of campaign
     def generate_id(params):
         def clean(s):
             return str(s).replace("/", "_sl_") \
