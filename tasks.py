@@ -387,7 +387,7 @@ def test_case_1(
         },
         {
             "agent_type": "controller",
-            "number": 1,
+            "number": int(nbr_topics),
             "machines": env["roles"]["ombt-control"],
             "klass": OmbtController,
             "kwargs": {
