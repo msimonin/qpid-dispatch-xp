@@ -152,6 +152,7 @@ class OmbtAgent(object):
         """Build the command for the ombt agent."""
         command = []
         command.append("--timeout %s " % self.timeout)
+        command.append("--topic %s " % self.topic)
         command.append(self.generate_connections())
         command.append(self.get_type())
         # NOTE(msimonin): we don't use verbosity for client/server
@@ -173,9 +174,10 @@ class OmbtServer(OmbtAgent):
         super(OmbtServer, self).__init__(**kwargs)
 
     def get_command(self):
-        server_command = super(OmbtServer, self).get_command()
-        server_command.append("--executor %s" % self.executor)
-        return server_command
+        """Build the command for the ombt server"""
+        command = super(OmbtServer, self).get_command()
+        command.append("--executor %s" % self.executor)
+        return command
 
     def get_type(self):
         return "rpc-server"
@@ -198,10 +200,7 @@ class OmbtController(OmbtAgent):
 
     def get_command(self):
         """Build the command for the ombt controller"""
-        command = []
-        command.append("--timeout %s" % self.timeout)
-        command.append(self.generate_connections())
-        command.append(self.get_type())
+        command = super(OmbtController, self).get_command()
         # We always dump stat per agents
         command.append("--output %s" % self.docker_log)
         command.append(self.call_type)
