@@ -89,8 +89,8 @@ def prepare():
 @click.option("--nbr_servers",
               default=t.NBR_SERVERS,
               help="Number of servers that will be deployed")
-@click.option("--topics",
-              nbr_topics=t.NBR_TOPICS,
+@click.option("--nbr_topics",
+              default=t.NBR_TOPICS,
               help="Number of topics that will set")
 @click.option("--call_type",
               default=t.CALL_TYPE,
