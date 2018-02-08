@@ -215,6 +215,20 @@ def get_current_directory(filename='current'):
     return os.path.join(cwd, filename)
 
 
+def get_topics(number):
+    """Create a list of topic names.
+
+    The names have the following format: topic_<id>. Where the id is a normalized number preceded by leading zeros.
+    >>> get_topics(1)
+    ['topic_1']
+    >>> get_topics(10)
+    ['topic_01', 'topic_02', 'topic_03', 'topic_04', 'topic_05', 'topic_06', 'topic_07', 'topic_08', 'topic_09', 'topic_10']
+    """
+    size = len(str(number))
+    sequence = ('{number:0{width}}'.format(number=n+1, width=size) for n in range(number))
+    return ['topic_' + e for e in sequence]
+
+
 # The two following tasks are exclusive either you choose to go with g5k or
 # vagrant you can't mix the two of them in the future we might want to
 # factorize it and have a switch on the command line to choose.
@@ -346,6 +360,8 @@ def test_case_1(
         "ombt_version": version,
     }
 
+    topics = get_topics(nbr_topics)
+
     descs = [
         {
             "agent_type": "rpc-client",
@@ -402,12 +418,15 @@ def test_case_1(
             machine = machines[agent_index % len(machines)].alias
             # choose a bus agent
             bus_agent = bus_conf[agent_index % len(bus_conf)]
+            # choose a topic
+            topic = topics[agent_index % len(topics)]
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
             kwargs.update({
                 "agent_id": agent_id,
                 "machine": machine,
                 "bus_agents": [bus_agent],
+                "topic": topic,
                 "control_agents": [control_agent]  # TODO
             })
             ombt_confs[machine].append(agent_desc["klass"](**kwargs))
