@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
-import click
-from execo_engine import sweep, ParamSweeper
 import logging
 import os
-import tasks as t
+
+import click
 import yaml
-import json
+
+import campaign as c
+import tasks as t
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -77,9 +78,19 @@ def inventory():
     t.inventory()
 
 
-@cli.command(help="Configure the resources.[after g5k,vagrant and inventory]")
+@cli.command(help="Configure the resources. [after g5k,vagrant and inventory]")
 def prepare():
     t.prepare()
+
+
+@cli.command(help="Destroy all the running dockers (not destroying the resources)")
+def destroy():
+    t.destroy()
+
+
+@cli.command(help="Backup the environment")
+def backup():
+    t.backup()
 
 
 @cli.command(help="Runs the test case 1: one single large (distributed) target.")
@@ -115,26 +126,16 @@ def prepare():
               default=t.VERSION,
               help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
 def test_case_1(nbr_clients, nbr_servers, nbr_topics, call_type, nbr_calls, pause, timeout, version, length, executor):
-    t.test_case_1(nbr_clients=nbr_clients,
-                  nbr_servers=nbr_servers,
-                  nbr_topics=nbr_topics,
-                  call_type=call_type,
-                  nbr_calls=nbr_calls,
-                  pause=pause,
-                  timeout=timeout,
-                  version=version,
-                  length=length,
-                  executor=executor)
-
-
-@cli.command(help="Destroy all the running dockers (not destroying the resources)")
-def destroy():
-    t.destroy()
-
-
-@cli.command(help="Backup the environment")
-def backup():
-    t.backup()
+    t.test_case(nbr_clients=nbr_clients,
+                nbr_servers=nbr_servers,
+                nbr_topics=nbr_topics,
+                call_type=call_type,
+                nbr_calls=nbr_calls,
+                pause=pause,
+                timeout=timeout,
+                version=version,
+                length=length,
+                executor=executor)
 
 
 @cli.command()
@@ -151,82 +152,11 @@ def backup():
 @click.option("--env",
               help="Use this environment directory instead of the default one")
 def campaign(broker, provider, conf, test, env):
-    # TODO change the implementation out of campaign
-    def generate_id(params):
-        def clean(s):
-            return str(s).replace("/", "_sl_") \
-                .replace(":", "_sc_")
-
-        return "-".join([
-            "%s__%s" % (clean(k), clean(v)) for k, v in sorted(params.items())
-        ])
-
-    def accept(params):
-        call_ratio_max = 3
-        cast_ratio_max = 3
-        call_type = params["call_type"]
-        if params["nbr_servers"] > params["nbr_clients"]:
-            return False
-        if call_type == "rpc-call":
-            if not params["pause"]:
-                # maximum rate
-                return call_ratio_max * params["nbr_servers"] >= params["nbr_clients"]
-            else:
-                # we can afford more clients
-                # based on our estimation a client sends 200msgs at full rate
-                return call_ratio_max * params["nbr_servers"] >= params["nbr_clients"] * 200 * params["pause"]
-        else:
-            if not params["pause"]:
-                # maximum rate
-                return cast_ratio_max * params["nbr_servers"] >= params["nbr_clients"]
-            else:
-                # we can afford more clients
-                # based on our estimation a client sends 200msgs at full rate
-                return cast_ratio_max * params["nbr_servers"] >= params["nbr_clients"] * 1000 * params["pause"]
-
-    # Function to pass in parameter to ParamSweeper.get_next()
-    # Give the illusion that the Set of params is sorted by nbr_clients
-    def sort_params_by_nbr_clients(set):
-        return sorted((list(set)), key=lambda k: k['nbr_clients'])
-
-    # Dump each params in the backup dir
-    def dump_param(params):
-        if not os.path.exists("%s/params.json" % test):
-            with open("%s/params.json" % test, 'w') as outfile:
-                json.dump([], outfile)
-        # Add the current params to the json
-        with open("%s/params.json" % test, 'r') as outfile:
-            all_params = json.load(outfile)
-        all_params.append(params)
-        with open("%s/params.json" % test, 'w') as outfile:
-            json.dump(all_params, outfile)
-
-    config = load_config(conf)
-    parameters = config["campaign"][test]
-
-    sweeps = sweep(parameters)
-    filtered_sweeps = [param for param in sweeps if accept(param)]
-    sweeper = ParamSweeper(
-        # Maybe puts the sweeper under the experimentation directory
-        # This should be current/sweeps
-        persistence_dir=os.path.join("%s/sweeps" % test),
-        sweeps=filtered_sweeps,
-        save_sweeps=True,
-        name=test
-    )
-    params = sweeper.get_next(sort_params_by_nbr_clients)
-    PROVIDERS[provider](broker=broker, config=config, env=test)
-    t.inventory()
-
-    while params:
-        params.pop("backup_dir", None)
-        params.update({"backup_dir": generate_id(params)})
-        t.prepare(broker=broker)
-        t.test_case_1(**params)
-        sweeper.done(params)
-        dump_param(params)
-        params = sweeper.get_next(sort_params_by_nbr_clients)
-        t.destroy()
+    c.campaign(broker=broker,
+               provider=provider,
+               conf=conf,
+               test=test,
+               env=env)
 
 
 if __name__ == "__main__":

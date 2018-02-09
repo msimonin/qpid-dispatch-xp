@@ -1,19 +1,17 @@
+import os
 from abc import ABCMeta, abstractmethod
+
 from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
-from enoslib.task import enostask
 from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
-from qpid_generator.graph import generate
-from qpid_generator.distribute import round_robin
+from enoslib.task import enostask
 from qpid_generator.configurations import get_conf
-
-import os
-import yaml
-
-BROKER = "qdr"
+from qpid_generator.distribute import round_robin
+from qpid_generator.graph import generate
 
 # DEFAULT PARAMETERS
+BROKER = "qdr"
 NBR_CLIENTS = 1
 NBR_SERVERS = 1
 NBR_TOPICS = 1
@@ -34,7 +32,7 @@ tc = {
 
 
 class BusConf(object):
-    """Common class to modelize bus configuration"""
+    """Common class to modelize bus configuration."""
 
     __metaclass__ = ABCMeta
 
@@ -91,7 +89,6 @@ class QdrConf(BusConf):
         return {
             "machine": listener[0]["host"],
             "port": listener[0]["port"]
-
         }
 
     def get_transport(self):
@@ -99,7 +96,7 @@ class QdrConf(BusConf):
 
 
 class OmbtAgent(object):
-    """Modelize an ombt agent"""
+    """Modelize an ombt agent."""
 
     __metaclass__ = ABCMeta
 
@@ -149,7 +146,8 @@ class OmbtAgent(object):
         return "--control %s --url %s" % (connections["control"], connections["url"])
 
     def get_command(self):
-        """Build the command for the ombt agent."""
+        """Build the command for the ombt agent.
+        """
         command = []
         command.append("--timeout %s " % self.timeout)
         command.append("--topic %s " % self.topic)
@@ -174,7 +172,8 @@ class OmbtServer(OmbtAgent):
         super(OmbtServer, self).__init__(**kwargs)
 
     def get_command(self):
-        """Build the command for the ombt server"""
+        """Build the command for the ombt server.
+        """
         command = super(OmbtServer, self).get_command()
         command.append("--executor %s" % self.executor)
         return command
@@ -199,7 +198,8 @@ class OmbtController(OmbtAgent):
         return "controller"
 
     def get_command(self):
-        """Build the command for the ombt controller"""
+        """Build the command for the ombt controller.
+        """
         command = super(OmbtController, self).get_command()
         # We always dump stat per agents
         command.append("--output %s" % self.docker_log)
@@ -211,6 +211,11 @@ class OmbtController(OmbtAgent):
 
 
 def get_current_directory(filename='current'):
+    """Get path of current working directory followed by a filename (directory).
+
+    :param filename: Name of the directory following the current working directory.
+    :return: The path of the filename as string appended to the current working directory.
+    """
     cwd = os.getcwd()
     return os.path.join(cwd, filename)
 
@@ -219,14 +224,24 @@ def get_topics(number):
     """Create a list of topic names.
 
     The names have the following format: topic_<id>. Where the id is a normalized number preceded by leading zeros.
+
     >>> get_topics(1)
-    ['topic_1']
+    ['topic-0']
+    >>> get_topics(2)
+    ['topic-0', 'topic-1']
+    >>> get_topics(0)
+    []
     >>> get_topics(10)
-    ['topic_01', 'topic_02', 'topic_03', 'topic_04', 'topic_05', 'topic_06', 'topic_07', 'topic_08', 'topic_09', 'topic_10']
+    ['topic-0', 'topic-1', 'topic-2', 'topic-3', 'topic-4', 'topic-5', 'topic-6', 'topic-7', 'topic-8', 'topic-9']
+    >>> (get_topics(11)
+    ['topic-00', 'topic-01', 'topic-02', 'topic-03', 'topic-04', 'topic-05', 'topic-06', 'topic-07', 'topic-08', 'topic-09', 'topic-10']
+
+    :param number: Number of topic names to generate.
+    :return: A list of topic names.
     """
-    size = len(str(number))
-    sequence = ('{number:0{width}}'.format(number=n+1, width=size) for n in range(number))
-    return ['topic_' + e for e in sequence]
+    length = len(str(number)) if number % 10 else len(str(number)) - 1
+    sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
+    return ['topic-' + e for e in sequence]
 
 
 # The two following tasks are exclusive either you choose to go with g5k or
@@ -330,7 +345,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
 
 
 @enostask()
-def test_case_1(
+def test_case(
         nbr_clients=NBR_CLIENTS,
         nbr_servers=NBR_SERVERS,
         nbr_topics=NBR_TOPICS,
@@ -343,26 +358,12 @@ def test_case_1(
         length=LENGTH,
         executor=EXECUTOR,
         env=None, **kwargs):
-    iteration_id = str("-".join([
-        "nbr_servers__%s" % nbr_servers,
-        "nbr_clients__%s" % nbr_clients,
-        "nbr_topics__%s" % nbr_topics,
-        "call_type__%s" % call_type,
-        "nbr_calls__%s" % nbr_calls,
-        "pause__%s" % pause]))
-
-    # Create the backup dir for this experiment
-    # NOTE(msimonin): We don't need to identify the backup dir we could use a
-    # dedicated env name for that
-    backup_dir = os.path.join(os.getcwd(), "current/%s" % backup_dir)
-    os.system("mkdir -p %s" % backup_dir)
     extra_vars = {
         "backup_dir": backup_dir,
         "ombt_version": version,
     }
 
-    topics = get_topics(nbr_topics)
-
+    # description template of agents
     descs = [
         {
             "agent_type": "rpc-client",
@@ -371,7 +372,6 @@ def test_case_1(
             "klass": OmbtClient,
             "kwargs": {
                 "timeout": timeout,
-                "topic": "topic"
             }
         },
         {
@@ -382,7 +382,6 @@ def test_case_1(
             "kwargs": {
                 "timeout": timeout,
                 "executor": executor,
-                "topic": "topic"
             }
         },
         {
@@ -396,31 +395,45 @@ def test_case_1(
                 "pause": pause,
                 "timeout": timeout,
                 "length": length,
-                "topic": "topic"
             }
         }]
-    # Below we build the specific variables for each client/server
+
+    iteration_id = str("-".join([
+        "nbr_servers__%s" % nbr_servers,
+        "nbr_clients__%s" % nbr_clients,
+        "nbr_topics__%s" % nbr_topics,
+        "call_type__%s" % call_type,
+        "nbr_calls__%s" % nbr_calls,
+        "pause__%s" % pause]))
+
+    # Create the backup dir for this experiment
+    # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
+    backup_dir = os.path.join(get_current_directory(), backup_dir)
+    os.system("mkdir -p %s" % backup_dir)
+
+    # build the specific variables for each client/server:
     # ombt_conf = {
     #   "machine01": [confs],
-    # ...
-    #
+    #   ...
     # }
     ombt_confs = {}
     bus_conf = env["bus_conf"]
     control_bus_conf = env["control_bus_conf"]
+    topics = get_topics(nbr_topics)
     for agent_desc in descs:
         machines = agent_desc["machines"]
         # make sure all the machines appears in the ombt_confs
         for machine in machines:
             ombt_confs.setdefault(machine.alias, [])
+
         for agent_index in range(agent_desc["number"]):
             # choose a topic
             topic = topics[agent_index % len(topics)]
-            agent_id = "%s-%s-%s-%s" % (agent_desc["agent_type"], agent_index, topic, iteration_id)
             # choose a machine
             machine = machines[agent_index % len(machines)].alias
             # choose a bus agent
             bus_agent = bus_conf[agent_index % len(bus_conf)]
+            agent_id = "%s-%s-%s-%s" % (agent_desc["agent_type"], agent_index, topic, iteration_id)
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
             kwargs.update({
@@ -437,8 +450,9 @@ def test_case_1(
         ansible_ombt_confs[m] = [o.to_dict() for o in confs]
 
     extra_vars.update({'ombt_confs': ansible_ombt_confs})
+    # TODO change the name of the ansible test case
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
-    # saving the conf
+    # save the conf
     env["ombt_confs"] = ombt_confs
 
 
@@ -462,17 +476,18 @@ def backup(env=None, **kwargs):
         "enos_action": "backup",
         "backup_dir": get_current_directory()
     }
+
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
 
 
 @enostask()
 def destroy(env=None, **kwargs):
-    extra_vars = {}
     # Call destroy on each component
-    extra_vars.update({
+    extra_vars = {
         "enos_action": "destroy",
         "broker": env["broker"],
         "bus_conf": [o.to_dict() for o in env.get("bus_conf")]
-    })
+    }
+
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
     run_ansible(["ansible/ombt.yml"], env["inventory"], extra_vars=extra_vars)
