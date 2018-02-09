@@ -437,10 +437,6 @@ def test_case_1(
         ansible_ombt_confs[m] = [o.to_dict() for o in confs]
 
     extra_vars.update({'ombt_confs': ansible_ombt_confs})
-
-    import ipdb
-    ipdb.set_trace()
-
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
     # saving the conf
     env["ombt_confs"] = ombt_confs
