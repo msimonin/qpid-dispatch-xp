@@ -358,6 +358,10 @@ def test_case(
         length=LENGTH,
         executor=EXECUTOR,
         env=None, **kwargs):
+    # Create the backup dir for this experiment
+    # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
+    backup_dir = os.path.join(get_current_directory(), backup_dir)
+    os.system("mkdir -p %s" % backup_dir)
     extra_vars = {
         "backup_dir": backup_dir,
         "ombt_version": version,
@@ -405,11 +409,6 @@ def test_case(
         "call_type__%s" % call_type,
         "nbr_calls__%s" % nbr_calls,
         "pause__%s" % pause]))
-
-    # Create the backup dir for this experiment
-    # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
-    backup_dir = os.path.join(get_current_directory(), backup_dir)
-    os.system("mkdir -p %s" % backup_dir)
 
     # build the specific variables for each client/server:
     # ombt_conf = {
