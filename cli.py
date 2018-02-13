@@ -173,6 +173,93 @@ def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, version, lengt
                 length=length,
                 executor=executor)
 
+#TODO check cli for tc3
+@cli.command(help="Runs the test case 1: one single large (distributed) target.")
+@click.option("--nbr_clients",
+              default=t.NBR_CLIENTS,
+              help="Number of clients that will be deployed")
+@click.option("--nbr_servers",
+              default=t.NBR_SERVERS,
+              help="Number of servers that will be deployed")
+@click.option("--call_type",
+              default=t.CALL_TYPE,
+              type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
+              help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
+@click.option("--nbr_calls",
+              default=t.NBR_CALLS,
+              help="Number of calls/cast to execute [client]")
+@click.option("--pause",
+              default=t.PAUSE,
+              help="Pause in second between each call [client]")
+@click.option("--timeout",
+              default=t.TIMEOUT,
+              help="Total time in second of the benchmark [controller]")
+@click.option("--length",
+              default=t.LENGTH,
+              help="The size of the payload in bytes")
+@click.option("--executor",
+              default=t.EXECUTOR,
+              help="type of executor the server will use")
+@click.option("--version",
+              default=t.VERSION,
+              help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
+def test_case_3(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length, executor):
+    t.test_case(nbr_clients=nbr_clients,
+                nbr_servers=nbr_servers,
+                nbr_topics=1,
+                call_type=call_type,
+                nbr_calls=nbr_calls,
+                pause=pause,
+                timeout=timeout,
+                version=version,
+                length=length,
+                executor=executor)
+
+
+@cli.command(help="Runs the test case 1: one single large (distributed) target.")
+@click.option("--nbr_clients",
+              default=t.NBR_CLIENTS,
+              help="Number of clients that will be deployed")
+@click.option("--nbr_servers",
+              default=t.NBR_SERVERS,
+              help="Number of servers that will be deployed")
+@click.option("--nbr_topics",
+              default=t.NBR_TOPICS,
+              help="Number of topics that will set")
+@click.option("--call_type",
+              default=t.CALL_TYPE,
+              type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
+              help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
+@click.option("--nbr_calls",
+              default=t.NBR_CALLS,
+              help="Number of calls/cast to execute [client]")
+@click.option("--pause",
+              default=t.PAUSE,
+              help="Pause in second between each call [client]")
+@click.option("--timeout",
+              default=t.TIMEOUT,
+              help="Total time in second of the benchmark [controller]")
+@click.option("--length",
+              default=t.LENGTH,
+              help="The size of the payload in bytes")
+@click.option("--executor",
+              default=t.EXECUTOR,
+              help="type of executor the server will use")
+@click.option("--version",
+              default=t.VERSION,
+              help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
+def test_case_4(nbr_clients, nbr_servers, nbr_topics, call_type, nbr_calls, pause, timeout, version, length, executor):
+    t.test_case(nbr_clients=nbr_clients, # actually clients = clients*topics
+                nbr_servers=nbr_servers, # actually servers = servers*topics
+                nbr_topics=nbr_topics,
+                call_type=call_type,
+                nbr_calls=nbr_calls,
+                pause=pause,
+                timeout=timeout,
+                version=version,
+                length=length,
+                executor=executor)
+
 
 @cli.command()
 @click.argument('broker')
@@ -193,7 +280,6 @@ def campaign(broker, provider, conf, test, env):
                conf=conf,
                test=test,
                env=env)
-    # TODO how do we need the --test option as a list of tests OR remove this option OR a default option=all
 
 
 if __name__ == "__main__":

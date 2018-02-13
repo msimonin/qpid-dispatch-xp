@@ -9,21 +9,27 @@ from cli import load_config, PROVIDERS
 
 
 def filter_1(parameters):
-    filterp(parameters, lambda x: x['nbr_servers'] < x['nbr_clients'])
+    filter_params(parameters, condition=lambda x: x['nbr_servers'] <= x['nbr_clients'])
 
 
-def filter_2(parameters):
-    filterp(parameters, lambda x: x['nbr_servers'] == x['nbr_clients'])
+def filter_3(parameters):
+    filter_params(parameters, condition=lambda x: x['nbr_servers'] >= x['nbr_clients'])
 
 
-def filterp(parameters, condition=lambda unused: True):
-    params = sorted(parameters, key=operator.itemgetter("nbr_clients"))
+def filter_4(parameters):
+    filter_params(parameters, key='nbr_topics')
+
+
+def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
+    params = sorted(parameters, key=operator.itemgetter(key))
     return (p for p in params if condition(p))
 
 
 tc_filters = {
     'test_case_1': filter_1,
-    'test_case_2': filter_2
+    'test_case_2': filter_params,
+    'test_case_3': filter_3,
+    'test_case_4': filter_4
 }
 
 
