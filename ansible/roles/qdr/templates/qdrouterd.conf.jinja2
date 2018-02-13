@@ -16,6 +16,7 @@ listener {
 
     {% if listener.saslMechanisms is defined %}saslMechanisms: {{ listener.saslMechanisms }} {% else %}{% endif %}
 
+    idleTimeoutSeconds: 120
 }
 {% endfor %}
 
@@ -24,6 +25,8 @@ connector {
     host: {{ hostvars[connector.host]['ansible_' + internal_network]['ipv4']['address'] }}
     port: {{ connector.port }}
     role: {{ connector.role }}
+
+    idleTimeoutSeconds: 120
 }
 {% endfor %}
 
