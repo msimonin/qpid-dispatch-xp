@@ -191,8 +191,6 @@ class OmbtController(OmbtAgent):
         self.pause = kwargs["pause"]
         self.length = kwargs["length"]
         super(OmbtController, self).__init__(**kwargs)
-        # that smells a bit
-        self.detach = False
 
     def get_type(self):
         return "controller"

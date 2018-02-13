@@ -1,5 +1,5 @@
 ---
-- name: Create ombt-data directory for the agent
+- name: Create ombt-data directory for the agent(s)
   file:
     path: "{{ item.log | dirname }}"
     mode: 0777
@@ -13,7 +13,7 @@
     state: touch
   with_items: "{{ ombt_confs[inventory_hostname] }}"
 
-- name: Start ombt agent
+- name: Start ombt client(s) or server(s)
   docker_container:
     image: "{{ ombt_version }}"
     command: "{{ item.command }}"
@@ -24,3 +24,27 @@
     volumes:
       - "{{ item.log }}:{{item.docker_log}}"
   with_items: "{{ ombt_confs[inventory_hostname] }}"
+  when: item.agent_type != "controller"
+
+- name: Start ombt controller(s)
+  docker_container:
+    image: "{{ ombt_version }}"
+    command: "{{ item.command }}"
+    name: "{{ item.name }}"
+    detach: "{{ item.detach }}"
+    network_mode: host
+    state: started
+    volumes:
+      - "{{ item.log }}:{{item.docker_log}}"
+  with_items: "{{ ombt_confs[inventory_hostname] }}"
+  when: item.agent_type == "controller"
+
+- name: Waiting for the controller(s) to finish
+  shell: "docker ps | grep controller"
+  register: finished
+  until: finished.stdout == ""
+  delay: 10
+  retries: 360
+  # NOTE(msimonin): empty grep will exit with a non-zero status
+  # just ignoring this case
+  ignore_errors: yes
