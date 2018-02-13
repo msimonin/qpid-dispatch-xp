@@ -4,12 +4,16 @@ import os
 
 from execo_engine import sweep, ParamSweeper
 
+import cli
 import tasks as t
-from cli import load_config, PROVIDERS
 
 
 def filter_1(parameters):
     filter_params(parameters, condition=lambda x: x['nbr_servers'] <= x['nbr_clients'])
+
+
+def filter_2(parameters):
+    filter_params(parameters, key='nbr_topics')
 
 
 def filter_3(parameters):
@@ -27,7 +31,7 @@ def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
 
 tc_filters = {
     'test_case_1': filter_1,
-    'test_case_2': filter_params,
+    'test_case_2': filter_2,
     'test_case_3': filter_3,
     'test_case_4': filter_4
 }
@@ -75,7 +79,7 @@ def campaign(broker, provider, conf, test, env):
         with open("%s/params.json" % test, 'w') as f:
             json.dump(all_params, f)
 
-    config = load_config(conf)
+    config = cli.load_config(conf)
     parameters = config['campaign'][test]
     sweeps = sweep(parameters)
     sweeper = ParamSweeper(
@@ -88,7 +92,7 @@ def campaign(broker, provider, conf, test, env):
     )
 
     current_parameters = sweeper.get_next(tc_filters[test])
-    PROVIDERS[provider](broker=broker, config=config, env=test)
+    cli.PROVIDERS[provider](broker=broker, config=config, env=test)
     t.inventory()
     while current_parameters:
         current_parameters.pop('backup_dir', None)
