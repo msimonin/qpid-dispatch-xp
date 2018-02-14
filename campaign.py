@@ -9,19 +9,19 @@ import tasks as t
 
 
 def filter_1(parameters):
-    filter_params(parameters, condition=lambda x: x['nbr_servers'] <= x['nbr_clients'])
+    return filter_params(parameters, condition=lambda x: x['nbr_servers'] <= x['nbr_clients'])
 
 
 def filter_2(parameters):
-    filter_params(parameters, key='nbr_topics')
+    return filter_params(parameters, key='nbr_topics')
 
 
 def filter_3(parameters):
-    filter_params(parameters, condition=lambda x: x['nbr_servers'] >= x['nbr_clients'])
+    return filter_params(parameters, condition=lambda x: x['nbr_servers'] >= x['nbr_clients'])
 
 
 def filter_4(parameters):
-    filter_params(parameters, key='nbr_topics')
+    return filter_params(parameters, key='nbr_topics')
 
 
 def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
