@@ -343,6 +343,10 @@ def prepare(env=None, broker=BROKER, **kwargs):
 
 
 @enostask()
+def test_case_2(nbr_topics, call_type, nbr_calls, pause,timeout, version, backup_dir, length, executor, env, **kwargs):
+    test_case(nbr_topics, nbr_topics, nbr_topics, call_type, nbr_calls, pause,timeout, version, backup_dir, length, executor, env, kwargs)
+
+
 def test_case(
         nbr_clients=NBR_CLIENTS,
         nbr_servers=NBR_SERVERS,
