@@ -123,16 +123,15 @@ def backup():
               default=t.VERSION,
               help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
 def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length, executor):
-    t.test_case(nbr_clients=nbr_clients,
-                nbr_servers=nbr_servers,
-                nbr_topics=1,
-                call_type=call_type,
-                nbr_calls=nbr_calls,
-                pause=pause,
-                timeout=timeout,
-                version=version,
-                length=length,
-                executor=executor)
+    t.test_case_1(nbr_clients=nbr_clients,
+                  nbr_servers=nbr_servers,
+                  call_type=call_type,
+                  nbr_calls=nbr_calls,
+                  pause=pause,
+                  timeout=timeout,
+                  version=version,
+                  length=length,
+                  executor=executor)
 
 
 @cli.command(help="Runs the test case 2: multiple distributed targets")

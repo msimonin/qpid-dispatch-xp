@@ -30,11 +30,12 @@ def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
 
 
 tc_filters = {
-    'test_case_1': filter_1,
-    'test_case_2': filter_2,
+    'test_case_1': {'defn': t.test_case_1, 'filtr': filter_1},
+    'test_case_2': {'defn': t.test_case_2, 'filtr': filter_2},
     'test_case_3': filter_3,
     'test_case_4': filter_4
 }
+
 
 
 def campaign(broker, provider, conf, test, env):
@@ -91,15 +92,15 @@ def campaign(broker, provider, conf, test, env):
         name=test
     )
 
-    current_parameters = sweeper.get_next(tc_filters[test])
+    current_parameters = sweeper.get_next(tc_filters[test]['filtr'])
     cli.PROVIDERS[provider](broker=broker, config=config, env=test)
     t.inventory()
     while current_parameters:
         current_parameters.pop('backup_dir', None)
         current_parameters.update({'backup_dir': generate_id(current_parameters)})
         t.prepare(broker=broker)
-        t.test_case(**current_parameters)
+        tc_filters[test]['defn'](**current_parameters)
         sweeper.done(current_parameters)
         dump_parameters(current_parameters)
-        current_parameters = sweeper.get_next(tc_filters[test])
+        current_parameters = sweeper.get_next(tc_filters[test]['filtr'])
         t.destroy()
