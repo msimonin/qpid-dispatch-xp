@@ -1,6 +1,9 @@
+from __future__ import print_function
+
 import json
 import operator
 from os import path
+import sys
 
 from execo_engine import sweep, ParamSweeper
 
@@ -82,11 +85,17 @@ def campaign(broker, force, provider, conf, test, env):
     t.PROVIDERS[provider](broker=broker, force=force, config=config, env=env)
     t.inventory()
     while current_parameters:
-        current_parameters.pop('backup_dir', None)
-        current_parameters.update({'backup_dir': generate_id(current_parameters)})
-        t.prepare(broker=broker)
-        TEST_CASES[test]['defn'](**current_parameters)
-        sweeper.done(current_parameters)
-        dump_parameters(current_parameters)
-        current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
-        t.destroy()
+        try:
+            current_parameters.pop('backup_dir', None)
+            current_parameters.update({'backup_dir': generate_id(current_parameters)})
+            t.prepare(broker=broker)
+            TEST_CASES[test]['defn'](**current_parameters)
+            sweeper.done(current_parameters)
+            dump_parameters(current_parameters)
+            current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
+        except (RuntimeError, ValueError, KeyError, OSError) as error:
+            print(error, file=sys.stderr)
+            print(error.args, file=sys.stderr)
+        finally:
+            sweeper.skip(current_parameters)
+            t.destroy()
