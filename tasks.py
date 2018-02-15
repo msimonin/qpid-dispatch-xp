@@ -1,6 +1,7 @@
 import os
 from abc import ABCMeta, abstractmethod
 
+import yaml
 from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
 from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
@@ -208,6 +209,17 @@ class OmbtController(OmbtAgent):
         return " ".join(command)
 
 
+def load_config(path):
+    """
+    Read configuration from a file in YAML format.
+    :param path: Path of the configuration file.
+    :return:
+    """
+    with open(path) as f:
+        configuration = yaml.safe_load(f)
+    return configuration
+
+
 def get_current_directory(filename='current'):
     """Get path of current working directory followed by a filename (directory).
 
@@ -272,6 +284,12 @@ def chameleon(env=None, broker=BROKER, force=False, config=None, **kwargs):
     env["networks"] = networks
 
 
+PROVIDERS = {
+    "g5k": g5k,
+    "vagrant": vagrant,
+    "chameleon": chameleon
+}
+
 @enostask()
 def inventory(env=None, **kwargs):
     roles = env["roles"]
@@ -325,7 +343,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
     # This configuration dict is used in subsequent test* tasks to configure the
     # ombt agents.
 
-    roles= env["roles"]
+    roles = env["roles"]
 
     # Get the config of the bus
     # We inject the type
@@ -370,13 +388,33 @@ def prepare(env=None, broker=BROKER, **kwargs):
 
 
 @enostask()
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause,timeout, version, backup_dir, length, executor, env, **kwargs):
-    test_case(nbr_clients, nbr_servers, 1, call_type, nbr_calls, pause,timeout, version, backup_dir, length, executor, env, **kwargs)
+def test_case_1(**kwargs):
+    # enforcing topic proper value in case the topics are declared in campaign
+    kwargs['nbr_topics'] = 1
+    test_case(**kwargs)
 
 
 @enostask()
-def test_case_2(nbr_topics, call_type, nbr_calls, pause,timeout, version, backup_dir, length, executor, env, **kwargs):
-    test_case(nbr_topics, nbr_topics, nbr_topics, call_type, nbr_calls, pause,timeout, version, backup_dir, length, executor, env, **kwargs)
+def test_case_2(**kwargs):
+    kwargs['nbr_clients'] = kwargs['nbr_topics']
+    kwargs['nbr_servers'] = kwargs['nbr_topics']
+    test_case(**kwargs)
+
+
+@enostask()
+def test_case_3(**kwargs):
+    # enforcing topic proper value in case the topics are declared in campaign
+    kwargs['nbr_topics'] = 1
+    kwargs['call_type'] = 'rpc_cast'
+    test_case(**kwargs)
+
+
+@enostask()
+def test_case_4(**kwargs):
+    kwargs['nbr_clients'] = kwargs['nbr_topics'] * kwargs['nbr_clients']
+    kwargs['nbr_servers'] = kwargs['nbr_topics'] * kwargs['nbr_servers']
+    kwargs['call_type'] = 'rpc_cast'
+    test_case(**kwargs)
 
 
 def test_case(
@@ -387,14 +425,13 @@ def test_case(
         nbr_calls=NBR_CALLS,
         pause=PAUSE,
         timeout=TIMEOUT,
-        version=VERSION,
-        backup_dir=BACKUP_DIR,
         length=LENGTH,
         executor=EXECUTOR,
+        version=VERSION,
         env=None, **kwargs):
     # Create the backup dir for this experiment
     # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
-    backup_dir = os.path.join(get_current_directory(), backup_dir)
+    backup_dir = os.path.join(get_current_directory(), BACKUP_DIR)
     os.system("mkdir -p %s" % backup_dir)
     extra_vars = {
         "backup_dir": backup_dir,
@@ -483,7 +520,6 @@ def test_case(
         ansible_ombt_confs[m] = [o.to_dict() for o in confs]
 
     extra_vars.update({'ombt_confs': ansible_ombt_confs})
-    # TODO change the name of the ansible test case
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
     # save the conf
     env["ombt_confs"] = ombt_confs

@@ -1,37 +1,18 @@
 #!/usr/bin/env python
 
 import logging
-import os
+from os import path
 
 import click
-import yaml
 
 import campaign as c
 import tasks as t
 
 logging.basicConfig(level=logging.DEBUG)
 
-DEFAULT_CONF = os.path.dirname(os.path.realpath(__file__))
-DEFAULT_CONF = os.path.join(DEFAULT_CONF, "conf.yaml")
-PROVIDERS = {
-    "g5k": t.g5k,
-    "vagrant": t.vagrant,
-    "chameleon": t.chameleon
-}
+DEFAULT_CONF = path.join(path.dirname(path.realpath(__file__)), 'conf.yaml')
 
 
-def load_config(path):
-    """
-    Read configuration from a file in YAML format.
-    :param path: Path of the configuration file.
-    :return:
-    """
-    with open(path) as f:
-        configuration = yaml.safe_load(f)
-    return configuration
-
-
-# cli part
 @click.group()
 def cli():
     pass
@@ -50,9 +31,8 @@ def cli():
 @click.option("--env",
               help="Use this environment directory instead of the default one")
 def deploy(broker, provider, force, conf, env):
-    config = load_config(conf)
-    p = PROVIDERS[provider]
-    p(broker=broker, force=force, config=config, env=env)
+    config = t.load_config(conf)
+    t.PROVIDERS[provider](broker=broker, force=force, config=config, env=env)
     t.inventory()
     t.prepare(broker=broker)
 
@@ -93,7 +73,7 @@ def backup():
     t.backup()
 
 
-@cli.command(help="Runs the test case 1: one single large (distributed) target.")
+@cli.command(help="Runs the test case 1: one single large (distributed) target")
 @click.option("--nbr_clients",
               default=t.NBR_CLIENTS,
               help="Number of clients that will be deployed")
@@ -103,7 +83,7 @@ def backup():
 @click.option("--call_type",
               default=t.CALL_TYPE,
               type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
-              help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
+              help="call type [client]: rpc_call (blocking), rpc_cast (non-blocking), or  rpc-fanout (broadcast)")
 @click.option("--nbr_calls",
               default=t.NBR_CALLS,
               help="Number of calls/cast to execute [client]")
@@ -118,20 +98,25 @@ def backup():
               help="The size of the payload in bytes")
 @click.option("--executor",
               default=t.EXECUTOR,
-              help="type of executor the server will use")
+              type=click.Choice(["eventlet", "threading"]),
+              help="type of executor on the server: evenlet or threading")
 @click.option("--version",
               default=t.VERSION,
               help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length, executor):
+@click.option("--env",
+              default=None,
+              help="Use this environment directory instead of the default one")
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, length, executor, version, env):
     t.test_case_1(nbr_clients=nbr_clients,
                   nbr_servers=nbr_servers,
                   call_type=call_type,
                   nbr_calls=nbr_calls,
                   pause=pause,
                   timeout=timeout,
-                  version=version,
                   length=length,
-                  executor=executor)
+                  executor=executor,
+                  version=version,
+                  env=env)
 
 
 @cli.command(help="Runs the test case 2: multiple distributed targets")
@@ -141,7 +126,7 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, 
 @click.option("--call_type",
               default=t.CALL_TYPE,
               type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
-              help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
+              help="call type [client]: rpc_call (blocking), rpc_cast (non-blocking), or  rpc-fanout (broadcast)")
 @click.option("--nbr_calls",
               default=t.NBR_CALLS,
               help="Number of calls/cast to execute [client]")
@@ -156,33 +141,33 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, 
               help="The size of the payload in bytes")
 @click.option("--executor",
               default=t.EXECUTOR,
+              type=click.Choice(["eventlet", "threading"]),
               help="type of executor the server will use")
 @click.option("--version",
               default=t.VERSION,
               help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
-def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, version, length, executor):
+@click.option("--env",
+              default=None,
+              help="Use this environment directory instead of the default one")
+def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, length, executor, version, env):
     t.test_case_2(nbr_topics=nbr_topics,
                   call_type=call_type,
                   nbr_calls=nbr_calls,
                   pause=pause,
                   timeout=timeout,
-                  version=version,
                   length=length,
-                  executor=executor)
+                  executor=executor,
+                  version=version,
+                  env=env)
 
 
-#TODO check cli for tc3
-@cli.command(help="Runs the test case 1: one single large (distributed) target.")
+@cli.command(help="Runs the test case 3: one single large distributed fanout")
 @click.option("--nbr_clients",
               default=t.NBR_CLIENTS,
               help="Number of clients that will be deployed")
 @click.option("--nbr_servers",
               default=t.NBR_SERVERS,
               help="Number of servers that will be deployed")
-@click.option("--call_type",
-              default=t.CALL_TYPE,
-              type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
-              help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
 @click.option("--nbr_calls",
               default=t.NBR_CALLS,
               help="Number of calls/cast to execute [client]")
@@ -197,37 +182,36 @@ def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, version, lengt
               help="The size of the payload in bytes")
 @click.option("--executor",
               default=t.EXECUTOR,
+              type=click.Choice(["eventlet", "threading"]),
               help="type of executor the server will use")
 @click.option("--version",
               default=t.VERSION,
               help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
-def test_case_3(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length, executor):
-    t.test_case(nbr_clients=nbr_clients,
-                nbr_servers=nbr_servers,
-                nbr_topics=1,
-                call_type=call_type,
-                nbr_calls=nbr_calls,
-                pause=pause,
-                timeout=timeout,
-                version=version,
-                length=length,
-                executor=executor)
+@click.option("--env",
+              default=None,
+              help="Use this environment directory instead of the default one")
+def test_case_3(nbr_clients, nbr_servers, nbr_calls, pause, timeout, length, executor, version, env):
+    t.test_case_3(nbr_clients=nbr_clients,
+                  nbr_servers=nbr_servers,
+                  nbr_calls=nbr_calls,
+                  pause=pause,
+                  timeout=timeout,
+                  length=length,
+                  executor=executor,
+                  version=version,
+                  env=env)
 
 
-@cli.command(help="Runs the test case 1: one single large (distributed) target.")
+@cli.command(help="Runs the test case 4: multiple distributed fanouts")
 @click.option("--nbr_clients",
               default=t.NBR_CLIENTS,
-              help="Number of clients that will be deployed")
+              help="Number of clients that will be deployed per topic")
 @click.option("--nbr_servers",
               default=t.NBR_SERVERS,
-              help="Number of servers that will be deployed")
+              help="Number of servers that will be deployed per topic")
 @click.option("--nbr_topics",
               default=t.NBR_TOPICS,
               help="Number of topics that will set")
-@click.option("--call_type",
-              default=t.CALL_TYPE,
-              type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
-              help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
 @click.option("--nbr_calls",
               default=t.NBR_CALLS,
               help="Number of calls/cast to execute [client]")
@@ -242,28 +226,35 @@ def test_case_3(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, 
               help="The size of the payload in bytes")
 @click.option("--executor",
               default=t.EXECUTOR,
+              type=click.Choice(["eventlet", "threading"]),
               help="type of executor the server will use")
 @click.option("--version",
               default=t.VERSION,
               help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
-def test_case_4(nbr_clients, nbr_servers, nbr_topics, call_type, nbr_calls, pause, timeout, version, length, executor):
-    t.test_case(nbr_clients=nbr_clients, # actually clients = clients*topics
-                nbr_servers=nbr_servers, # actually servers = servers*topics
-                nbr_topics=nbr_topics,
-                call_type=call_type,
-                nbr_calls=nbr_calls,
-                pause=pause,
-                timeout=timeout,
-                version=version,
-                length=length,
-                executor=executor)
+@click.option("--env",
+              default=None,
+              help="Use this environment directory instead of the default one")
+def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls, pause, timeout, length, executor, version, env):
+    t.test_case_4(nbr_clients=nbr_clients,
+                  nbr_servers=nbr_servers,
+                  nbr_topics=nbr_topics,
+                  nbr_calls=nbr_calls,
+                  pause=pause,
+                  timeout=timeout,
+                  length=length,
+                  executor=executor,
+                  version=version,
+                  env=env)
 
 
-@cli.command()
+@cli.command(help="Performs tests according to the (swept) parameters described in configuration")
 @click.argument('broker')
 @click.option("--provider",
               default="vagrant",
               help="Deploy with the given provider")
+@click.option("--force",
+              is_flag=True,
+              help="force redeploy")
 @click.option("--conf",
               default=DEFAULT_CONF,
               help="Configuration file to use")
@@ -271,10 +262,12 @@ def test_case_4(nbr_clients, nbr_servers, nbr_topics, call_type, nbr_calls, paus
               default="test_case_1",
               help="Launch a test campaign given a test")
 @click.option("--env",
+              default=None,
               help="Use this environment directory instead of the default one")
-def campaign(broker, provider, conf, test, env):
+def campaign(broker, force, provider, conf, test, env):
     c.campaign(broker=broker,
                provider=provider,
+               force=force,
                conf=conf,
                test=test,
                env=env)

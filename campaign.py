@@ -1,10 +1,9 @@
 import json
 import operator
-import os
+from os import path
 
 from execo_engine import sweep, ParamSweeper
 
-import cli
 import tasks as t
 
 
@@ -20,34 +19,21 @@ def filter_3(parameters):
     return filter_params(parameters, condition=lambda x: x['nbr_servers'] >= x['nbr_clients'])
 
 
-def filter_4(parameters):
-    return filter_params(parameters, key='nbr_topics')
-
-
 def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
     params = sorted(parameters, key=operator.itemgetter(key))
     return (p for p in params if condition(p))
 
 
-tc_filters = {
+TEST_CASES = {
     'test_case_1': {'defn': t.test_case_1, 'filtr': filter_1},
     'test_case_2': {'defn': t.test_case_2, 'filtr': filter_2},
-    'test_case_3': filter_3,
-    'test_case_4': filter_4
+    'test_case_3': {'defn': t.test_case_3, 'filtr': filter_3},
+    'test_case_4': {'defn': t.test_case_4, 'filtr': filter_2}  # same as tc2
 }
 
 
+def campaign(broker, force, provider, conf, test, env):
 
-def campaign(broker, provider, conf, test, env):
-    """
-
-    :param broker:
-    :param provider:
-    :param conf:
-    :param test:
-    :param env:
-    :return:
-    """
     def generate_id(params):
         """Generate a unique ID based on the provided parameters.
 
@@ -70,7 +56,7 @@ def campaign(broker, provider, conf, test, env):
 
         :param params: JSON parameters to dump.
         """
-        if not os.path.exists("%s/params.json" % test):
+        if not path.exists("%s/params.json" % test):
             with open("%s/params.json" % test, 'w') as f:
                 json.dump([], f)
         # Add current parameters
@@ -80,27 +66,27 @@ def campaign(broker, provider, conf, test, env):
         with open("%s/params.json" % test, 'w') as f:
             json.dump(all_params, f)
 
-    config = cli.load_config(conf)
+    config = t.load_config(conf)
     parameters = config['campaign'][test]
     sweeps = sweep(parameters)
     sweeper = ParamSweeper(
         # Maybe puts the sweeper under the experimentation directory
         # This should be current/sweeps
-        persistence_dir=os.path.join("%s/sweeps" % test),
+        persistence_dir=path.join("%s/sweeps" % test),
         sweeps=sweeps,
         save_sweeps=True,
         name=test
     )
 
-    current_parameters = sweeper.get_next(tc_filters[test]['filtr'])
-    cli.PROVIDERS[provider](broker=broker, config=config, env=test)
+    current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
+    t.PROVIDERS[provider](broker=broker, force=force, config=config, env=env)
     t.inventory()
     while current_parameters:
         current_parameters.pop('backup_dir', None)
         current_parameters.update({'backup_dir': generate_id(current_parameters)})
         t.prepare(broker=broker)
-        tc_filters[test]['defn'](**current_parameters)
+        TEST_CASES[test]['defn'](**current_parameters)
         sweeper.done(current_parameters)
         dump_parameters(current_parameters)
-        current_parameters = sweeper.get_next(tc_filters[test]['filtr'])
+        current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
         t.destroy()
