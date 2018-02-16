@@ -36,40 +36,40 @@ TEST_CASES = {
 }
 
 
-def campaign(broker, force, provider, conf, test, env):
+def dump_parameters(directory, params):
+    """Dump each parameter set in the backup directory.
 
-    def generate_id(params):
-        """Generate a unique ID based on the provided parameters.
+    All parameters are dumped in the file <test>/params.json.
+    If previous are found new ones are appended.
+
+    :param directory: working directory
+    :param params: JSON parameters to dump
+    """
+    json_params = path.join(directory, 'params.json')
+    if not path.exists(json_params):
+        with open(json_params, 'w') as f:
+            json.dump([], f)
+    # Add current parameters
+    with open(json_params, 'r') as f:
+        all_params = json.load(f)
+    all_params.append(params)
+    with open(json_params, 'w') as f:
+        json.dump(all_params, f)
+
+
+def generate_id(params):
+    """Generate a unique ID based on the provided parameters.
 
         :param params: JSON parameters of an execution.
         :return: A unique ID.
         """
+    def replace(s):
+        return str(s).replace("/", "_sl_").replace(":", "_sc_")
 
-        def clean(s):
-            return str(s).replace("/", "_sl_").replace(":", "_sc_")
+    return '-'.join(["%s__%s" % (replace(k), replace(v)) for k, v in sorted(params.items())])
 
-        return "-".join([
-            "%s__%s" % (clean(k), clean(v)) for k, v in sorted(params.items())
-        ])
 
-    def dump_parameters(params):
-        """Dump each parameter set in the backup directory.
-
-        All parameters are dumped in the file <test>/params.json.
-        If previous are found new ones are appended.
-
-        :param params: JSON parameters to dump.
-        """
-        if not path.exists("%s/params.json" % test):
-            with open("%s/params.json" % test, 'w') as f:
-                json.dump([], f)
-        # Add current parameters
-        with open("%s/params.json" % test, 'r') as f:
-            all_params = json.load(f)
-        all_params.append(params)
-        with open("%s/params.json" % test, 'w') as f:
-            json.dump(all_params, f)
-
+def campaign(broker, force, provider, conf, test, env):
     config = t.load_config(conf)
     parameters = config['campaign'][test]
     sweeps = sweep(parameters)
@@ -87,7 +87,7 @@ def campaign(broker, force, provider, conf, test, env):
             t.prepare(broker=broker)
             TEST_CASES[test]['defn'](**current_parameters)
             sweeper.done(current_parameters)
-            dump_parameters(current_parameters)
+            dump_parameters(current_env_dir, current_parameters)
             current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
         except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             print(error, file=sys.stderr)
