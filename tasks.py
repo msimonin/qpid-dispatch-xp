@@ -428,10 +428,11 @@ def test_case(
         length=LENGTH,
         executor=EXECUTOR,
         version=VERSION,
+        backup_dir=BACKUP_DIR,
         env=None, **kwargs):
     # Create the backup dir for this experiment
     # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
-    backup_dir = os.path.join(get_current_directory(), BACKUP_DIR)
+    backup_dir = os.path.join(get_current_directory(), backup_dir)
     os.system("mkdir -p %s" % backup_dir)
     extra_vars = {
         "backup_dir": backup_dir,

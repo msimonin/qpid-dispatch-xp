@@ -74,9 +74,7 @@ def campaign(broker, force, provider, conf, test, env):
     parameters = config['campaign'][test]
     sweeps = sweep(parameters)
     sweeper = ParamSweeper(
-        # Maybe puts the sweeper under the experimentation directory
-        # This should be current/sweeps
-        persistence_dir=path.join("%s/sweeps" % test),
+        persistence_dir=path.join(test, "sweeps"),
         sweeps=sweeps,
         save_sweeps=True,
         name=test
@@ -87,7 +85,6 @@ def campaign(broker, force, provider, conf, test, env):
     t.inventory()
     while current_parameters:
         try:
-            current_parameters.pop('backup_dir', None)
             current_parameters.update({'backup_dir': generate_id(current_parameters)})
             t.prepare(broker=broker)
             TEST_CASES[test]['defn'](**current_parameters)
