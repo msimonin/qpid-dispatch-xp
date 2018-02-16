@@ -5,6 +5,7 @@ import operator
 from os import path
 import sys
 
+from enoslib.errors import EnosError
 from execo_engine import sweep, ParamSweeper
 
 import tasks as t
@@ -93,7 +94,7 @@ def campaign(broker, force, provider, conf, test, env):
             sweeper.done(current_parameters)
             dump_parameters(current_parameters)
             current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
-        except (RuntimeError, ValueError, KeyError, OSError) as error:
+        except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
         finally:
