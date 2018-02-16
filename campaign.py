@@ -73,15 +73,13 @@ def campaign(broker, force, provider, conf, test, env):
     config = t.load_config(conf)
     parameters = config['campaign'][test]
     sweeps = sweep(parameters)
-    sweeper = ParamSweeper(
-        persistence_dir=path.join(test, "sweeps"),
-        sweeps=sweeps,
-        save_sweeps=True,
-        name=test
-    )
-
+    current_env_dir = env if env else test
+    sweeper = ParamSweeper(persistence_dir=path.join(current_env_dir, "sweeps"),
+                           sweeps=sweeps,
+                           save_sweeps=True,
+                           name=test)
     current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
-    t.PROVIDERS[provider](broker=broker, force=force, config=config, env=env)
+    t.PROVIDERS[provider](broker=broker, force=force, config=config, env=current_env_dir)
     t.inventory()
     while current_parameters:
         try:
