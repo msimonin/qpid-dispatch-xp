@@ -18,7 +18,7 @@ qdr:
 registry:
   type: internal
 g5k:
-  #reservation: "2017-12-06 14:40:00"
+  reservation: "2017-12-06 14:40:00"
   walltime: "2:00:00"
   dhcp: true
   job_name: rabbitmq-xp-daytest
@@ -85,16 +85,7 @@ vagrant:
           - control_network
           - internal_network
       - roles:
-        - ombt-client
-        - telegraf
-        - chrony
-        flavor: tiny
-        number: 1
-        networks:
-          - control_network
-          - internal_network
-      - roles:
-        - ombt-server
+        - bus
         - telegraf
         - chrony
         flavor: tiny
@@ -104,6 +95,8 @@ vagrant:
           - internal_network
       - roles:
         - control-bus
+        - ombt-client
+        - ombt-server
         - ombt-control
         - control
         - registry
@@ -127,20 +120,10 @@ chameleon:
             flavor: m1.medium
             number: 1
           - roles:
-            - ombt-client
-            - telegraf
-            - chrony
-            flavor: m1.medium
-            number: 1
-          - roles:
-            - ombt-server
-            - telegraf
-            - chrony
-            flavor: m1.medium
-            number: 1
-          - roles:
             - control-bus
             - ombt-control
+            - ombt-server
+            - ombt-client
             - control
             - registry
             - telegraf
