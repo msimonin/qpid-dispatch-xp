@@ -420,12 +420,25 @@ def test_case(
         "ombt_version": version,
     }
 
+    bus_conf = env["bus_conf"]
+    machine_client = env["roles"]["bus"]
+    if "bus-client" in env["roles"]:
+        machine_client = env["roles"]["bus-client"]
+    machine_client = [m.alias for m in machine_client]
+
+    machine_server = env["roles"]["bus"]
+    if "bus-server" in env["roles"]:
+        machine_server = env["roles"]["bus-server"]
+    machine_server = [m.alias for m in machine_server]
+
     # description template of agents
     descs = [
         {
             "agent_type": "rpc-client",
             "number": int(nbr_clients),
             "machines": env["roles"]["ombt-client"],
+            "bus_agents": [b for b in bus_conf if b.get_listener()["machine"] in
+                          machine_client],
             "klass": OmbtClient,
             "kwargs": {
                 "timeout": timeout,
@@ -435,6 +448,8 @@ def test_case(
             "agent_type": "rpc-server",
             "number": int(nbr_servers),
             "machines": env["roles"]["ombt-server"],
+            "bus_agents": [b for b in bus_conf if b.get_listener()["machine"] in
+                          machine_server],
             "klass": OmbtServer,
             "kwargs": {
                 "timeout": timeout,
@@ -445,6 +460,7 @@ def test_case(
             "agent_type": "controller",
             "number": int(nbr_topics),
             "machines": env["roles"]["ombt-control"],
+            "bus_agents": bus_conf,
             "klass": OmbtController,
             "kwargs": {
                 "call_type": call_type,
@@ -469,7 +485,6 @@ def test_case(
     #   ...
     # }
     ombt_confs = {}
-    bus_conf = env["bus_conf"]
     control_bus_conf = env["control_bus_conf"]
     topics = get_topics(nbr_topics)
     for agent_desc in descs:
@@ -484,7 +499,9 @@ def test_case(
             # choose a machine
             machine = machines[agent_index % len(machines)].alias
             # choose a bus agent
-            bus_agent = bus_conf[agent_index % len(bus_conf)]
+            # bus_agent = bus_conf[agent_index % len(bus_conf)]
+            bus_agent = agent_desc["bus_agents"][agent_index %
+                                                 len(agent_desc["bus_agents"])]
             agent_id = "%s-%s-%s-%s" % (agent_desc["agent_type"], agent_index, topic, iteration_id)
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
