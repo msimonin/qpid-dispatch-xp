@@ -99,3 +99,7 @@ def campaign(test, provider, force, conf, env):
             print(error.args, file=sys.stderr)
         finally:
             t.destroy()
+
+
+def incremental_campaign(test, provider, force, conf, env):
+        pass

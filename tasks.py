@@ -255,25 +255,24 @@ def get_topics(number):
     return ['topic-' + e for e in sequence]
 
 
-# The two following tasks are exclusive either you choose to go with g5k or
-# vagrant you can't mix the two of them in the future we might want to
-# factorize it and have a switch on the command line to choose.
+# g5k and vagrant are mutually exclusive, in the future we might want
+# to factorize it and have a switch on the command line to choose.
 @enostask(new=True)
-def g5k(force=False, config=None, env=None, **kwargs):
-    init_provider(G5k, 'g5k', env=env, force=force, config=config, **kwargs)
-
-
-@enostask(new=True)
-def vagrant(force=False, config=None, env=None, **kwargs):
-    init_provider(Enos_vagrant, 'vagrant', env=env, force=force, config=config, **kwargs)
+def g5k(**kwargs):
+    init_provider(G5k, 'g5k', **kwargs)
 
 
 @enostask(new=True)
-def chameleon(force=False, config=None, env=None, **kwargs):
-    init_provider(Chameleonkvm, 'chameleon', env=env, force=force, config=config, **kwargs)
+def vagrant(**kwargs):
+    init_provider(Enos_vagrant, 'vagrant', **kwargs)
 
 
-def init_provider(provider, name, force=False, env=None, config=None, **kwargs):
+@enostask(new=True)
+def chameleon(**kwargs):
+    init_provider(Chameleonkvm, 'chameleon', **kwargs)
+
+
+def init_provider(provider, name, force=False, config=None, env=None, **kwargs):
     instance = provider(config[name])
     roles, networks = instance.init(force_deploy=force)
     env["config"] = config
@@ -539,8 +538,7 @@ def validate(env=None, **kwargs):
 
 
 @enostask()
-def backup(backup_dir=BACKUP_DIR,
-           env=None, **kwargs):
+def backup(backup_dir=BACKUP_DIR, env=None, **kwargs):
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "enos_action": "backup",
