@@ -37,6 +37,11 @@ TEST_CASES = {
     'test_case_4': {'defn': t.test_case_4, 'filtr': filter_2}  # same as tc2
 }
 
+ZIP_ARGS = {
+    'test_case_1': ['nbr_servers', 'nbr_clients', 'pause'],
+    'test_case_2': ['nbr_topics, pause']
+}
+
 
 def dump_parameters(directory, params):
     """Dump each parameter set in the backup directory.
@@ -101,5 +106,20 @@ def campaign(test, provider, force, conf, env):
             t.destroy()
 
 
+def zip_parameters(parameters, *args):
+    tuples = zip(*[[(k, v) for v in parameters[k]] for k in args])
+    return {'tuple': [dict(t) for t in tuples]}
+
+
 def incremental_campaign(test, provider, force, conf, env):
-        pass
+    config = t.load_config(conf)
+    parameters = config['campaign'][test]
+    args = ZIP_ARGS[test]
+    result = zip_parameters(parameters, *args)
+    filtered_parameters = {k: v for k, v in parameters.items() if k not in args}
+    filtered_parameters.update(result)
+    sweeps = sweep(filtered_parameters)
+    for e in sweeps:
+        d = e.pop('tuple')
+        e.update(d)
+    print(sweeps)
