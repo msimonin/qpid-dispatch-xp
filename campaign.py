@@ -40,7 +40,10 @@ def get_current_values(params, current, key):
 def fix_1(parameters, current_parameters):
     # previous_clients, current_clients = get_current_values(parameters, current_parameters, 'nbr_clients')
     # previous_servers, current_servers = get_current_values(parameters, current_parameters, 'nbr_servers')
-    current_parameters.update({'topics': ['topic-0']})
+    import uuid
+    suffix = uuid.uuid1()
+    current_parameters.update({'topics': ['topic-{}'.format(suffix)]})
+    # current_parameters.update({'topics': ['topic-0']})
     # current_parameters.update({'nbr_clients': current_clients - previous_clients})
     # current_parameters.update({'nbr_servers': current_servers - previous_servers})
 
