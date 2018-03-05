@@ -30,16 +30,45 @@ def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
     return (p for p in params if condition(p))
 
 
-TEST_CASES = {
-    'test_case_1': {'defn': t.test_case_1, 'filtr': filter_1},
-    'test_case_2': {'defn': t.test_case_2, 'filtr': filter_2},
-    'test_case_3': {'defn': t.test_case_3, 'filtr': filter_3},
-    'test_case_4': {'defn': t.test_case_4, 'filtr': filter_2}  # same as tc2
-}
+def get_current_values(params, current, key):
+    plist = params.get(key)
+    state = current.get(key)
+    index = plist.index(state)
+    return (0, state) if index == 0 else (plist[index-1], state)
 
-ZIP_ARGS = {
-    'test_case_1': ['nbr_servers', 'nbr_clients', 'pause'],
-    'test_case_2': ['nbr_topics, pause']
+
+def fix_1(parameters, current_parameters):
+    # previous_clients, current_clients = get_current_values(parameters, current_parameters, 'nbr_clients')
+    # previous_servers, current_servers = get_current_values(parameters, current_parameters, 'nbr_servers')
+    current_parameters.update({'topics': ['topic-0']})
+    # current_parameters.update({'nbr_clients': current_clients - previous_clients})
+    # current_parameters.update({'nbr_servers': current_servers - previous_servers})
+
+
+def fix_2(parameters, current_parameters):
+    topics_list = parameters.get('nbr_topics')
+    max_topics = max(topics_list)
+    all_topics = t.get_topics(max_topics)
+    _, nbr_topics = get_current_values(parameters, current_parameters, 'nbr_topics')
+    current_topics = all_topics[0:nbr_topics]
+    current_parameters.update({'topics': current_topics})
+    current_parameters.update({'nbr_clients': nbr_topics})
+    current_parameters.update({'nbr_servers': nbr_topics})
+
+
+TEST_CASES = {
+    'test_case_1': {'defn': t.test_case_1,
+                    'filtr': filter_1,
+                    'fixp': fix_1,
+                    'zip': ['nbr_servers', 'nbr_clients', 'pause']},
+    'test_case_2': {'defn': t.test_case_2,
+                    'filtr': filter_2,
+                    'fixp': fix_2,
+                    'zip': ['nbr_topics', 'pause']},
+    'test_case_3': {'defn': t.test_case_3,
+                    'filtr': filter_3},
+    'test_case_4': {'defn': t.test_case_4,
+                    'filtr': filter_2}  # same as tc2
 }
 
 
@@ -93,7 +122,7 @@ def campaign(test, provider, force, conf, env):
     while current_parameters:
         try:
             current_parameters.update({'backup_dir': generate_id(current_parameters)})
-            t.prepare(broker=current_parameters['driver'])
+            t.prepare(driver=current_parameters['driver'], env=current_env_dir)
             TEST_CASES[test]['defn'](**current_parameters)
             sweeper.done(current_parameters)
             dump_parameters(current_env_dir, current_parameters)
@@ -106,20 +135,55 @@ def campaign(test, provider, force, conf, env):
             t.destroy()
 
 
-def zip_parameters(parameters, *args):
+def zip_parameters(parameters, args):
     tuples = zip(*[[(k, v) for v in parameters[k]] for k in args])
-    return {'tuple': [dict(t) for t in tuples]}
+    return {'zip': [dict(z) for z in tuples]}
+
+
+def filter_parameters(parameters, args):
+    return {k: v for k, v in parameters.items() if k not in args}
+
+
+def flat_sweep(parameters):
+    sweeps = sweep(parameters)
+    for e in sweeps:
+        d = e.pop('zip')
+        e.update(d)
+    return sweeps
 
 
 def incremental_campaign(test, provider, force, conf, env):
     config = t.load_config(conf)
-    parameters = config['campaign'][test]
-    args = ZIP_ARGS[test]
-    result = zip_parameters(parameters, *args)
-    filtered_parameters = {k: v for k, v in parameters.items() if k not in args}
-    filtered_parameters.update(result)
-    sweeps = sweep(filtered_parameters)
-    for e in sweeps:
-        d = e.pop('tuple')
-        e.update(d)
-    print(sweeps)
+    raw_parameters = config['campaign'][test]
+    args = TEST_CASES[test]['zip']
+    zips = zip_parameters(raw_parameters, args)
+    parameters = filter_parameters(raw_parameters, args)
+    parameters.update(zips)
+    sweeps = flat_sweep(parameters)
+    current_env_dir = env if env else test
+    sweeper = ParamSweeper(persistence_dir=path.join(current_env_dir, "sweeps"),
+                           sweeps=sweeps,
+                           save_sweeps=True,
+                           name=test)
+    t.PROVIDERS[provider](force=force,
+                          config=config,
+                          env=current_env_dir)
+    t.inventory()
+    current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
+    # only the driver of the first iteration is used for all the campaign
+    t.prepare(driver=current_parameters['driver'], env=current_env_dir)
+    while current_parameters:
+        try:
+            current_parameters.update({'backup_dir': generate_id(current_parameters)})
+            # fix number of clients and servers (or topics) to deploy
+            TEST_CASES[test]['fixp'](raw_parameters, current_parameters)
+            TEST_CASES[test]['defn'](**current_parameters)
+            # remove 'topics' from current parameters for serialisation (no list support)
+            current_parameters.pop('topics')
+            sweeper.done(current_parameters)
+            dump_parameters(current_env_dir, current_parameters)
+            current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
+        except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+            sweeper.skip(current_parameters)
+            print(error, file=sys.stderr)
+            print(error.args, file=sys.stderr)

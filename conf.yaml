@@ -9,7 +9,6 @@ campaign:
     version: ["beyondtheclouds/ombt:latest"]
     length: [1024]
     executor: ["eventlet"]
-    # driver is the adopted term in ombt for brokers or routers
     driver: ["broker", "router-4"]
   test_case_2:
     nbr_topics: [10]
@@ -22,8 +21,7 @@ campaign:
     executor: ["threading"]
     driver: ["broker"]
 drivers:
-  # default broker must be present (required by enostask prepare)
-  rabbitmq:
+  broker:
     type: rabbitmq
   router-4:
     type: qdr

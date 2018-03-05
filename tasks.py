@@ -330,16 +330,12 @@ def prepare(driver=DRIVER, env=None, **kwargs):
         "registry": env["config"]["registry"],
         "broker": env['config']['drivers'][driver]['type']
     }
-    # Preparing the installation of the bus under evaluation
-    # Need to pass specific options
-    # We generate a configuration dict that captures the minimal set of
-    # parameters of each agents of the bus
-    # This configuration dict is used in subsequent test* tasks to configure the
-    # ombt agents.
 
+    # Preparing the installation of the bus under evaluation. Need to pass
+    # specific options. We generate a configuration dict that captures the
+    # minimal set of parameters of each agents of the bus. This configuration
+    # dict is used in subsequent test* tasks to configure the ombt agents.
     roles = env['roles']
-    # Get the config of the bus, inject the type
-    config = env['config']['drivers'].get(driver)
 
     def generate_ansible_conf(configuration, role):
         machines = [desc.alias for desc in roles[role]]
@@ -352,12 +348,12 @@ def prepare(driver=DRIVER, env=None, **kwargs):
         ansible_conf.update(configuration)
         return ansible_conf
 
+    # get the config of the bus, inject the type
+    config = env['config']['drivers'].get(driver)
     ansible_bus_conf = generate_ansible_conf(config, 'bus')
-    # Note(msimonin): use an implicit rabbitmq broker for the control-bus
-    rabbit_conf =  {
-        "type": "rabbitmq"
-    }
-    ansible_control_bus_conf = generate_ansible_conf(rabbit_conf, 'control-bus')
+    # use an implicit rabbitmq broker for the control-bus by default
+    control_config = env['config']['drivers'].get('broker', {'type': DRIVER})
+    ansible_control_bus_conf = generate_ansible_conf(control_config, 'control-bus')
     # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})
     extra_vars.update(ansible_bus_conf)
@@ -434,10 +430,10 @@ def test_case(
     descs = [
         {
             "agent_type": "rpc-client",
-            "number": int(nbr_clients),
+            "number": nbr_clients,
             "machines": env["roles"]["ombt-client"],
-            "bus_agents": [b for b in bus_conf if b.get_listener()["machine"] in
-                          machine_client],
+            "bus_agents": [b for b in bus_conf
+                           if b.get_listener()["machine"] in machine_client],
             "klass": OmbtClient,
             "kwargs": {
                 "timeout": timeout,
@@ -445,10 +441,10 @@ def test_case(
         },
         {
             "agent_type": "rpc-server",
-            "number": int(nbr_servers),
+            "number": nbr_servers,
             "machines": env["roles"]["ombt-server"],
-            "bus_agents": [b for b in bus_conf if b.get_listener()["machine"] in
-                          machine_server],
+            "bus_agents": [b for b in bus_conf
+                           if b.get_listener()["machine"] in machine_server],
             "klass": OmbtServer,
             "kwargs": {
                 "timeout": timeout,
@@ -457,7 +453,7 @@ def test_case(
         },
         {
             "agent_type": "controller",
-            "number": int(nbr_topics),
+            "number": nbr_topics,
             "machines": env["roles"]["ombt-control"],
             "bus_agents": bus_conf,
             "klass": OmbtController,
@@ -485,7 +481,7 @@ def test_case(
     # }
     ombt_confs = {}
     control_bus_conf = env["control_bus_conf"]
-    topics = get_topics(nbr_topics)
+    topics = kwargs.get('topics')
     for agent_desc in descs:
         machines = agent_desc["machines"]
         # make sure all the machines appears in the ombt_confs
@@ -499,18 +495,15 @@ def test_case(
             machine = machines[agent_index % len(machines)].alias
             # choose a bus agent
             # bus_agent = bus_conf[agent_index % len(bus_conf)]
-            bus_agent = agent_desc["bus_agents"][agent_index %
-                                                 len(agent_desc["bus_agents"])]
+            bus_agent = agent_desc["bus_agents"][agent_index % len(agent_desc["bus_agents"])]
             agent_id = "%s-%s-%s-%s" % (agent_desc["agent_type"], agent_index, topic, iteration_id)
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
-            kwargs.update({
-                "agent_id": agent_id,
-                "machine": machine,
-                "bus_agents": [bus_agent],
-                "topic": topic,
-                "control_agents": [control_agent]  # TODO
-            })
+            kwargs.update({"agent_id": agent_id,
+                           "machine": machine,
+                           "bus_agents": [bus_agent],
+                           "topic": topic,
+                           "control_agents": [control_agent]})
             ombt_confs[machine].append(agent_desc["klass"](**kwargs))
 
     ansible_ombt_confs = {}
