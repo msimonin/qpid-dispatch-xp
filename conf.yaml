@@ -3,13 +3,13 @@ campaign:
     nbr_servers: [1]
     nbr_clients: [1]
     call_type: ["rpc-call"]
-    nbr_calls: [100000]
+    nbr_calls: [1000]
     pause: [0.1]
     timeout: [8000]
     version: ["beyondtheclouds/ombt:latest"]
     length: [1024]
-    executor: ["eventlet"]
-    driver: ["broker", "router-4"]
+    executor: ["threading"]
+    driver: ["broker"]
   test_case_2:
     nbr_topics: [10]
     call_type: ["rpc-call", "rpc-cast"]
@@ -19,7 +19,7 @@ campaign:
     version: ["beyondtheclouds/ombt:latest"]
     length: [1024]
     executor: ["threading"]
-    driver: ["broker"]
+    driver: ["broker", "router-4"]
 drivers:
   broker:
     type: rabbitmq

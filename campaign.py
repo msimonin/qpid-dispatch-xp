@@ -68,9 +68,9 @@ def get_current_values(params, current, key):
 def fix_1(parameters, current_parameters):
     previous_clients, current_clients = get_current_values(parameters, current_parameters, 'nbr_clients')
     previous_servers, current_servers = get_current_values(parameters, current_parameters, 'nbr_servers')
-    # import uuid
-    # suffix = uuid.uuid1()
-    # current_parameters.update({'topics': ['topic-{}'.format(suffix)]})
+    # import uuid
+    # suffix = uuid.uuid1()
+    # current_parameters.update({'topics': ['topic-{}'.format(suffix)]})
     current_parameters.update({'topics': ['topic-0']})
     current_parameters.update({'nbr_clients': current_clients - previous_clients})
     current_parameters.update({'nbr_servers': current_servers - previous_servers})
@@ -170,40 +170,46 @@ def campaign(test, provider, force, conf, env):
             t.destroy()
 
 
-def zip_parameters(parameters, args):
-    tuples = zip(*[[(k, v) for v in parameters[k]] for k in args])
+def zip_parameters(parameters, arguments):
+    tuples = zip(*[[(k, v) for v in parameters[k]] for k in arguments])
     return {'zip': [dict(z) for z in tuples]}
 
 
 def flat_sweep(parameters):
     sweeps = sweep(parameters)
     pops = [e.pop('zip') for e in sweeps]
-    return map(dict.update, sweeps, pops)
+    map(dict.update, sweeps, pops)
+    return sweeps
 
 
 def incremental_campaign(test, provider, force, conf, env):
     config = t.load_config(conf)
     raw_parameters = config['campaign'][test]
-    args = TEST_CASES[test]['zip']
-    parameters = {k: v for k, v in raw_parameters.items() if k not in args}
-    zips = zip_parameters(raw_parameters, args)
+    arguments = TEST_CASES[test]['zip']
+    parameters = {k: v for k, v in raw_parameters.items() if k not in arguments}
+    zips = zip_parameters(raw_parameters, arguments)
     parameters.update(zips)
     sweeps = flat_sweep(parameters)
     sweeps = sort_parameters(sweeps, TEST_CASES[test]['key'])
     current_env_dir = env if env else test
     t.PROVIDERS[provider](force=force, config=config, env=current_env_dir)
     t.inventory()
-    current_parameters = sweeps.pop(0)
-    # only the driver of the first iteration is used for all the campaign
-    t.prepare(driver=current_parameters.get('driver'), env=current_env_dir)
-    while current_parameters:
+    driver = None
+    for current_parameters in sweeps:
+        current_driver = current_parameters.get('driver')
+        # normally sweeps are sorted by driver so the environment
+        # will be deployed only when the driver is swept. It allows
+        # to have several drivers configured in the 'driver' list
+        # TODO check if we need to destroy controller agents
+        if current_driver != driver:
+            t.prepare(driver=current_driver, env=current_env_dir)
+            driver = current_driver
         try:
             current_parameters.update({'backup_dir': generate_id(current_parameters)})
             # fix number of clients and servers (or topics) to deploy
             TEST_CASES[test]['fixp'](raw_parameters, current_parameters)
             TEST_CASES[test]['defn'](**current_parameters)
             dump_parameters(current_env_dir, current_parameters)
-            current_parameters = sweeps.pop(0)
         except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
