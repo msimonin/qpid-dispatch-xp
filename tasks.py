@@ -231,30 +231,6 @@ def get_backup_directory(backup_dir):
     return backup_dir
 
 
-def get_topics(number):
-    """Create a list of topic names.
-
-    The names have the following format: topic_<id>. Where the id is a normalized number preceded by leading zeros.
-
-    >>> get_topics(1)
-    ['topic-0']
-    >>> get_topics(2)
-    ['topic-0', 'topic-1']
-    >>> get_topics(0)
-    []
-    >>> get_topics(10)
-    ['topic-0', 'topic-1', 'topic-2', 'topic-3', 'topic-4', 'topic-5', 'topic-6', 'topic-7', 'topic-8', 'topic-9']
-    >>> (get_topics(11)
-    ['topic-00', 'topic-01', 'topic-02', 'topic-03', 'topic-04', 'topic-05', 'topic-06', 'topic-07', 'topic-08', 'topic-09', 'topic-10']
-
-    :param number: Number of topic names to generate.
-    :return: A list of topic names.
-    """
-    length = len(str(number)) if number % 10 else len(str(number)) - 1
-    sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
-    return ['topic-' + e for e in sequence]
-
-
 # g5k and vagrant are mutually exclusive, in the future we might want
 # to factorize it and have a switch on the command line to choose.
 @enostask(new=True)
@@ -481,7 +457,7 @@ def test_case(
     # }
     ombt_confs = {}
     control_bus_conf = env["control_bus_conf"]
-    topics = kwargs.get('topics')
+    topics = kwargs.pop('topics')
     for agent_desc in descs:
         machines = agent_desc["machines"]
         # make sure all the machines appears in the ombt_confs
