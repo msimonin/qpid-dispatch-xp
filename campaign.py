@@ -5,11 +5,14 @@ import operator
 from os import path
 import sys
 
+import time
 from enoslib.errors import EnosError
 from execo_engine import sweep, ParamSweeper
 
 import tasks as t
 
+
+PAUSE = 1.0
 
 def get_topics(number):
     """Create a list of topic names.
@@ -182,7 +185,7 @@ def flat_sweep(parameters):
     return sweeps
 
 
-def incremental_campaign(test, provider, force, conf, env):
+def incremental_campaign(test, provider, force, pause, conf, env):
     config = t.load_config(conf)
     raw_parameters = config['campaign'][test]
     arguments = TEST_CASES[test]['zip']
@@ -191,7 +194,7 @@ def incremental_campaign(test, provider, force, conf, env):
     parameters.update(zips)
     sweeps = flat_sweep(parameters)
     sweeps = sort_parameters(sweeps, TEST_CASES[test]['key'])
-    current_env_dir = env if env else test
+    current_env_dir = env if env else '{}-incremental'.format(test)
     t.PROVIDERS[provider](force=force, config=config, env=current_env_dir)
     t.inventory()
     driver = None
@@ -210,6 +213,7 @@ def incremental_campaign(test, provider, force, conf, env):
             TEST_CASES[test]['fixp'](raw_parameters, current_parameters)
             TEST_CASES[test]['defn'](**current_parameters)
             dump_parameters(current_env_dir, current_parameters)
+            time.sleep(pause)
         except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)

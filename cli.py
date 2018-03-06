@@ -190,7 +190,7 @@ def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, length, execut
               help="pause between calls in seconds (client)")
 @click.option("--timeout",
               default=t.TIMEOUT,
-              help="max allowed time for benchmark in second (controller)")
+              help="max allowed time for benchmark in seconds (controller)")
 @click.option("--length",
               default=t.LENGTH,
               help="size of payload in bytes")
@@ -234,7 +234,7 @@ def test_case_3(nbr_clients, nbr_servers, nbr_calls, pause, timeout, length, exe
               help="pause between calls in seconds (client)")
 @click.option("--timeout",
               default=t.TIMEOUT,
-              help="max allowed time for benchmark in second (controller)")
+              help="max allowed time for benchmark in seconds (controller)")
 @click.option("--length",
               default=t.LENGTH,
               help="size of payload in bytes")
@@ -272,17 +272,21 @@ def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls, pause, timeout,
 @click.option("--incremental",
               is_flag=True,
               help="reuse of resources in next iteration")
+@click.option("--pause",
+              default=c.PAUSE,
+              help="break between iterations in seconds (only incremental)")
 @click.option("--conf",
               default=DEFAULT_CONF,
               help="alternative configuration file")
 @click.option("--env",
               default=None,
               help="alternative environment directory")
-def campaign(test, provider, force, incremental, conf, env):
+def campaign(test, provider, force, incremental, pause, conf, env):
     if incremental:
         c.incremental_campaign(test=test,
                                provider=provider,
                                force=force,
+                               pause=pause,
                                conf=conf,
                                env=env)
     else:

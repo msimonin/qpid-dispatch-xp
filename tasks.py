@@ -304,6 +304,7 @@ def prepare(driver=DRIVER, env=None, **kwargs):
     # Generate inventory
     extra_vars = {
         "registry": env["config"]["registry"],
+        #  "broker": env['config']['drivers'][driver]['type']
         "broker": driver
     }
 
