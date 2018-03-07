@@ -14,10 +14,12 @@ import tasks as t
 
 PAUSE = 1.0
 
+
 def get_topics(number):
     """Create a list of topic names.
 
-    The names have the following format: topic_<id>. Where the id is a normalized number preceded by leading zeros.
+    The names have the following format: topic_<id>. Where the id is a
+    normalized number preceded by leading zeros.
 
     >>> get_topics(1)
     ['topic-0']
@@ -25,17 +27,19 @@ def get_topics(number):
     ['topic-0', 'topic-1']
     >>> get_topics(0)
     []
-    >>> get_topics(10)
-    ['topic-0', 'topic-1', 'topic-2', 'topic-3', 'topic-4', 'topic-5', 'topic-6', 'topic-7', 'topic-8', 'topic-9']
-    >>> (get_topics(11)
-    ['topic-00', 'topic-01', 'topic-02', 'topic-03', 'topic-04', 'topic-05', 'topic-06', 'topic-07', 'topic-08', 'topic-09', 'topic-10']
+    >>> get_topics(10) # doctest: +ELLIPSIS
+    ['topic-0', 'topic-1', 'topic-2', 'topic-3', ..., 'topic-8', 'topic-9']
+    >>> get_topics(11) # doctest: +ELLIPSIS
+    ['topic-00', 'topic-01', 'topic-02', 'topic-03', ..., 'topic-09', 'topic-10']
+    >>> get_topics(1000) # doctest: +ELLIPSIS
+    ['topic-000', 'topic-001', 'topic-002', 'topic-003', ..., 'topic-999']
 
     :param number: Number of topic names to generate.
     :return: A list of topic names.
     """
     length = len(str(number)) if number % 10 else len(str(number)) - 1
     sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
-    return ['topic-' + e for e in sequence]
+    return ['topic-{}'.format(e) for e in sequence]
 
 
 def filter_1(parameters):
@@ -56,8 +60,48 @@ def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
 
 
 def sort_parameters(parameters, key):
-    # sort by 'driver' first, then by 'call type' and finally use the key
-    # (i.e., group executions by driver-call_type and sort incrementally by key)
+    """
+    Sort a list of parameters containing dictionaries.
+
+    This kind of sort is performed to dictionaries containing at least elements with keys 'driver'
+    and 'call_type'. It may also include other provided key as item for grouping by.
+
+    >>> parameters = [
+    ... {'other': 6, 'driver': 'router', 'call_type': 'rpc_cast', 'topic':'topic-1', 'nbr_clients': 60},
+    ... {'other': 5, 'driver': 'router', 'call_type': 'rpc_cast', 'topic':'topic-2', 'nbr_clients': 40},
+    ... {'other': 4, 'driver': 'router', 'call_type': 'rpc_call', 'topic':'topic-3', 'nbr_clients': 50},
+    ... {'other': 3, 'driver': 'broker', 'call_type': 'rpc_cast', 'topic':'topic-4', 'nbr_clients': 30},
+    ... {'other': 2, 'driver': 'broker', 'call_type': 'rpc_call', 'topic':'topic-5', 'nbr_clients': 20},
+    ... {'other': 1, 'driver': 'router', 'call_type': 'rpc_cast', 'topic':'topic-6', 'nbr_clients': 70}]
+    >>> sort_parameters(parameters, 'nbr_clients')
+    [\
+{'topic': 'topic-5', 'nbr_clients': 20, 'other': 2, 'driver': 'broker', 'call_type': 'rpc_call'}, \
+{'topic': 'topic-4', 'nbr_clients': 30, 'other': 3, 'driver': 'broker', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-3', 'nbr_clients': 50, 'other': 4, 'driver': 'router', 'call_type': 'rpc_call'}, \
+{'topic': 'topic-2', 'nbr_clients': 40, 'other': 5, 'driver': 'router', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-1', 'nbr_clients': 60, 'other': 6, 'driver': 'router', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-6', 'nbr_clients': 70, 'other': 1, 'driver': 'router', 'call_type': 'rpc_cast'}]
+    >>> sort_parameters(parameters, key='topic')
+    [\
+{'topic': 'topic-5', 'nbr_clients': 20, 'other': 2, 'driver': 'broker', 'call_type': 'rpc_call'}, \
+{'topic': 'topic-4', 'nbr_clients': 30, 'other': 3, 'driver': 'broker', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-3', 'nbr_clients': 50, 'other': 4, 'driver': 'router', 'call_type': 'rpc_call'}, \
+{'topic': 'topic-1', 'nbr_clients': 60, 'other': 6, 'driver': 'router', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-2', 'nbr_clients': 40, 'other': 5, 'driver': 'router', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-6', 'nbr_clients': 70, 'other': 1, 'driver': 'router', 'call_type': 'rpc_cast'}]
+    >>> sort_parameters(parameters, 'other')
+    [\
+{'topic': 'topic-5', 'nbr_clients': 20, 'other': 2, 'driver': 'broker', 'call_type': 'rpc_call'}, \
+{'topic': 'topic-4', 'nbr_clients': 30, 'other': 3, 'driver': 'broker', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-3', 'nbr_clients': 50, 'other': 4, 'driver': 'router', 'call_type': 'rpc_call'}, \
+{'topic': 'topic-6', 'nbr_clients': 70, 'other': 1, 'driver': 'router', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-2', 'nbr_clients': 40, 'other': 5, 'driver': 'router', 'call_type': 'rpc_cast'}, \
+{'topic': 'topic-1', 'nbr_clients': 60, 'other': 6, 'driver': 'router', 'call_type': 'rpc_cast'}]
+
+    :param parameters: a list of sub-dictionaries containing 'driver' and 'call_type' keys
+    :param key:
+    :return:
+    """
     return sorted(parameters, key=operator.itemgetter('driver', 'call_type', key))
 
 
@@ -71,9 +115,6 @@ def get_current_values(params, current, key):
 def fix_1(parameters, current_parameters):
     previous_clients, current_clients = get_current_values(parameters, current_parameters, 'nbr_clients')
     previous_servers, current_servers = get_current_values(parameters, current_parameters, 'nbr_servers')
-    # import uuid
-    # suffix = uuid.uuid1()
-    # current_parameters.update({'topics': ['topic-{}'.format(suffix)]})
     current_parameters.update({'topics': ['topic-0']})
     current_parameters.update({'nbr_clients': current_clients - previous_clients})
     current_parameters.update({'nbr_servers': current_servers - previous_servers})
@@ -152,9 +193,7 @@ def campaign(test, provider, force, conf, env):
                            sweeps=sweeps,
                            save_sweeps=True,
                            name=test)
-    t.PROVIDERS[provider](force=force,
-                          config=config,
-                          env=current_env_dir)
+    t.PROVIDERS[provider](force=force, config=config, env=current_env_dir)
     t.inventory()
     current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
     while current_parameters:
@@ -174,24 +213,94 @@ def campaign(test, provider, force, conf, env):
 
 
 def zip_parameters(parameters, arguments):
+    """
+    Select elements from a dictionary and group them as a list of
+    sub-dictionaries preserving the original keys.
+
+    The selected elements are defined in a list of arguments. That list is
+    not validated against the keys of the original dictionary raising a
+    'KeyError' exception if an element is not found in the dictionary. The
+    elements are grouped using a 'zip' operation in a list of sub-dictionaries.
+    In other words the zip performs a cross product between the key and each
+    element of the value-list and a dot product between the results of the
+    cross product of each argument.
+
+    >>> parameters = {
+    ... 'other': [6],
+    ... 'nbr_servers': [1, 2, 3],
+    ... 'call_type': ['rpc-call', 'rpc_cast'],
+    ... 'topic':['topic-1', 'topic-2', 'topic-3', 'topic-4', 'topic-5'],
+    ... 'pause': [0.1, 0.3, 0.5],
+    ... 'nbr_clients': [10, 20, 30]}
+    >>> arguments = ['nbr_servers', 'nbr_clients', 'pause']
+    >>> zip_parameters(parameters, arguments)
+    [\
+{'nbr_servers': 1, 'pause': 0.1, 'nbr_clients': 10}, \
+{'nbr_servers': 2, 'pause': 0.3, 'nbr_clients': 20}, \
+{'nbr_servers': 3, 'pause': 0.5, 'nbr_clients': 30}]
+    >>> arguments = ['topic', 'pause']
+    >>> zip_parameters(parameters, arguments)
+    [\
+{'topic': 'topic-1', 'pause': 0.1}, \
+{'topic': 'topic-2', 'pause': 0.3}, \
+{'topic': 'topic-3', 'pause': 0.5}]
+    >>> arguments = ['topic', 'call_type','other']
+    >>> zip_parameters(parameters, arguments)
+    [{'topic': 'topic-1', 'other': 6, 'call_type': 'rpc-call'}]
+    >>> arguments = ['call_type']
+    >>> zip_parameters(parameters, arguments)
+    [{'call_type': 'rpc-call'}, {'call_type': 'rpc_cast'}]
+    >>> arguments = []
+    >>> zip_parameters(parameters, arguments)
+    []
+    >>> arguments = ['nonexistent']
+    >>> zip_parameters(parameters, arguments)
+    Traceback (most recent call last):
+    ...
+    KeyError: 'nonexistent'
+
+    :param parameters: dictionary containing 'key:<list of values>' elements
+    :param arguments: list of keys of the elements in the dictionary to zip
+    :return: a list containing sub-dictionaries of zipped arguments
+    """
     tuples = zip(*[[(k, v) for v in parameters[k]] for k in arguments])
-    return {'zip': [dict(z) for z in tuples]}
+    return [dict(z) for z in tuples]
 
 
-def flat_sweep(parameters):
+def flat_sweep(parameters, key='zip'):
+    """
+    Sweeps parameters and flat-merge a contained sub-dictionary identified
+    with a key.
+
+    The sweep operation is performed by invoking the sweeps function form
+    the execo_engine module.
+
+    :param parameters: set of parameters to sweep
+    :param key: key of the dictionary
+    :return: swept parameters
+    """
     sweeps = sweep(parameters)
-    pops = [e.pop('zip') for e in sweeps]
+    pops = [e.pop(key) for e in sweeps]
     map(dict.update, sweeps, pops)
     return sweeps
 
 
 def incremental_campaign(test, provider, force, pause, conf, env):
+    """Execute a test incrementally (reusing deployment).
+
+    :param test: name of the test to execute
+    :param provider: target infrastructure
+    :param force: override deployment configuration
+    :param pause: break between iterations in seconds
+    :param conf: file configuration
+    :param env: directory containing the environment configuration
+    """
     config = t.load_config(conf)
     raw_parameters = config['campaign'][test]
     arguments = TEST_CASES[test]['zip']
     parameters = {k: v for k, v in raw_parameters.items() if k not in arguments}
     zips = zip_parameters(raw_parameters, arguments)
-    parameters.update(zips)
+    parameters.update({'zip': zips})
     sweeps = flat_sweep(parameters)
     sweeps = sort_parameters(sweeps, TEST_CASES[test]['key'])
     current_env_dir = env if env else '{}-incremental'.format(test)
@@ -200,9 +309,10 @@ def incremental_campaign(test, provider, force, pause, conf, env):
     driver = None
     for current_parameters in sweeps:
         current_driver = current_parameters.get('driver')
-        # normally sweeps are sorted by driver so the environment
-        # will be deployed only when the driver is swept. It allows
-        # to have several drivers configured in the 'driver' list
+        # sweeps are sorted by driver so the environment will be deployed
+        # only when the driver is swept. It allows to have several drivers
+        # configured in the 'driver' list
+        #
         # TODO check if we need to destroy controller agents
         if current_driver != driver:
             t.prepare(driver=current_driver, env=current_env_dir)

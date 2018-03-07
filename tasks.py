@@ -304,8 +304,7 @@ def prepare(driver=DRIVER, env=None, **kwargs):
     # Generate inventory
     extra_vars = {
         "registry": env["config"]["registry"],
-        #  "broker": env['config']['drivers'][driver]['type']
-        "broker": driver
+        "broker": env['config']['drivers'].get(driver, {'type': DRIVER})['type']
     }
 
     # Preparing the installation of the bus under evaluation. Need to pass
