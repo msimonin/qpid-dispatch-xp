@@ -30,6 +30,32 @@ tc = {
     "default_rate": "1gbit",
 }
 
+def get_topics(number):
+    """Create a list of topic names.
+
+    The names have the following format: topic_<id>. Where the id is a
+    normalized number preceded by leading zeros.
+
+    >>> get_topics(1)
+    ['topic-0']
+    >>> get_topics(2)
+    ['topic-0', 'topic-1']
+    >>> get_topics(0)
+    []
+    >>> get_topics(10) # doctest: +ELLIPSIS
+    ['topic-0', 'topic-1', 'topic-2', 'topic-3', ..., 'topic-8', 'topic-9']
+    >>> get_topics(11) # doctest: +ELLIPSIS
+    ['topic-00', 'topic-01', 'topic-02', 'topic-03', ..., 'topic-09', 'topic-10']
+    >>> get_topics(1000) # doctest: +ELLIPSIS
+    ['topic-000', 'topic-001', 'topic-002', 'topic-003', ..., 'topic-999']
+
+    :param number: Number of topic names to generate.
+    :return: A list of topic names.
+    """
+    length = len(str(number)) if number % 10 else len(str(number)) - 1
+    sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
+    return ['topic-{}'.format(e) for e in sequence]
+
 
 class BusConf(object):
     """Common class to modelize bus configuration."""
@@ -302,10 +328,10 @@ def generate_bus_conf(config, machines):
 @enostask()
 def prepare(driver=DRIVER, env=None, **kwargs):
     # Generate inventory
+    config = env['config']['drivers'].get(driver, {'type': DRIVER})
     extra_vars = {
         "registry": env["config"]["registry"],
-        "broker": env['config']['drivers'].get(driver, {'type': DRIVER})['type']
-    }
+        "broker": config["type"]}
 
     # Preparing the installation of the bus under evaluation. Need to pass
     # specific options. We generate a configuration dict that captures the
@@ -324,8 +350,6 @@ def prepare(driver=DRIVER, env=None, **kwargs):
         ansible_conf.update(configuration)
         return ansible_conf
 
-    # get the config of the bus, inject the type
-    config = env['config']['drivers'].get(driver)
     ansible_bus_conf = generate_ansible_conf(config, 'bus')
     # use an implicit rabbitmq broker for the control-bus by default
     control_config = env['config']['drivers'].get('broker', {'type': DRIVER})
@@ -345,14 +369,16 @@ def prepare(driver=DRIVER, env=None, **kwargs):
 @enostask()
 def test_case_1(**kwargs):
     # enforcing topic proper value in case the topics are declared in campaign
-    kwargs['nbr_topics'] = 1
+    kwargs['topics'] = get_topics(1)
     test_case(**kwargs)
 
 
 @enostask()
 def test_case_2(**kwargs):
-    kwargs['nbr_clients'] = kwargs['nbr_topics']
-    kwargs['nbr_servers'] = kwargs['nbr_topics']
+    nbr_topics = kwargs['nbr_topics']
+    kwargs['nbr_clients'] = nbr_topics
+    kwargs['nbr_servers'] = nbr_topics
+    kwargs['topics'] = get_topics(nbr_topics)
     test_case(**kwargs)
 
 

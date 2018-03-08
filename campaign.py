@@ -15,32 +15,6 @@ import tasks as t
 PAUSE = 1.0
 
 
-def get_topics(number):
-    """Create a list of topic names.
-
-    The names have the following format: topic_<id>. Where the id is a
-    normalized number preceded by leading zeros.
-
-    >>> get_topics(1)
-    ['topic-0']
-    >>> get_topics(2)
-    ['topic-0', 'topic-1']
-    >>> get_topics(0)
-    []
-    >>> get_topics(10) # doctest: +ELLIPSIS
-    ['topic-0', 'topic-1', 'topic-2', 'topic-3', ..., 'topic-8', 'topic-9']
-    >>> get_topics(11) # doctest: +ELLIPSIS
-    ['topic-00', 'topic-01', 'topic-02', 'topic-03', ..., 'topic-09', 'topic-10']
-    >>> get_topics(1000) # doctest: +ELLIPSIS
-    ['topic-000', 'topic-001', 'topic-002', 'topic-003', ..., 'topic-999']
-
-    :param number: Number of topic names to generate.
-    :return: A list of topic names.
-    """
-    length = len(str(number)) if number % 10 else len(str(number)) - 1
-    sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
-    return ['topic-{}'.format(e) for e in sequence]
-
 
 def filter_1(parameters):
     return filter_params(parameters, condition=lambda x: x['nbr_servers'] <= x['nbr_clients'])
@@ -123,7 +97,7 @@ def fix_1(parameters, current_parameters):
 def fix_2(parameters, current_parameters):
     topics_list = parameters.get('nbr_topics')
     max_topics = max(topics_list)
-    all_topics = get_topics(max_topics)
+    all_topics = t.get_topics(max_topics)
     previous_nbr_topics, nbr_topics = get_current_values(parameters, current_parameters, 'nbr_topics')
     current_topics = all_topics[previous_nbr_topics:nbr_topics]
     current_parameters.update({'topics': current_topics})
@@ -203,13 +177,13 @@ def campaign(test, provider, force, conf, env):
             TEST_CASES[test]['defn'](**current_parameters)
             sweeper.done(current_parameters)
             dump_parameters(current_env_dir, current_parameters)
-            current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
-        except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+        except (EnosError, RuntimeError, ValueError, KeyError, OSError, KeyboardInterrupt) as error:
             sweeper.skip(current_parameters)
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
         finally:
             t.destroy()
+            current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
 
 
 def zip_parameters(parameters, arguments):
