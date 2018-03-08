@@ -312,7 +312,8 @@ def flat_sweep(parameters, key='zip'):
     """
     sweeps = sweep(parameters)
     pops = [e.pop(key) for e in sweeps]
-    map(dict.update, sweeps, pops)
+    for s, p in zip(sweeps, pops):
+        s.update(p)
     return sweeps
 
 
