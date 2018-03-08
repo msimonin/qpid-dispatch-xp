@@ -1,5 +1,6 @@
 import os
 from abc import ABCMeta, abstractmethod
+import uuid
 
 import yaml
 from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
@@ -15,6 +16,7 @@ DRIVER = "rabbitmq"
 NBR_CLIENTS = 1
 NBR_SERVERS = 1
 NBR_TOPICS = 1
+TOPICS = ["topic-0"]
 CALL_TYPE = "rpc-call"
 NBR_CALLS = 100
 PAUSE = 0.0
@@ -369,7 +371,6 @@ def prepare(driver=DRIVER, env=None, **kwargs):
 
 @enostask()
 def test_case_1(**kwargs):
-    kwargs['nbr_topics'] = 1
     kwargs['topics'] = get_topics(1)
     test_case(**kwargs)
 
@@ -385,9 +386,8 @@ def test_case_2(**kwargs):
 
 @enostask()
 def test_case_3(**kwargs):
-    kwargs['nbr_topics'] = 1
-    kwargs['call_type'] = 'rpc_cast'
     kwargs['topics'] = get_topics(1)
+    kwargs['call_type'] = 'rpc_cast'
     test_case(**kwargs)
 
 
@@ -404,7 +404,7 @@ def test_case_4(**kwargs):
 def test_case(
         nbr_clients=NBR_CLIENTS,
         nbr_servers=NBR_SERVERS,
-        nbr_topics=NBR_TOPICS,
+        topics=TOPICS,
         call_type=CALL_TYPE,
         nbr_calls=NBR_CALLS,
         pause=PAUSE,
@@ -413,7 +413,9 @@ def test_case(
         executor=EXECUTOR,
         version=VERSION,
         backup_dir=BACKUP_DIR,
+        iteration_id = None,
         env=None, **kwargs):
+    iteration_id = iteration_id or uuid.uuid4()
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "backup_dir": backup_dir,
@@ -458,7 +460,7 @@ def test_case(
         },
         {
             "agent_type": "controller",
-            "number": nbr_topics,
+            "number": 1,
             "machines": env["roles"]["ombt-control"],
             "bus_agents": bus_conf,
             "klass": OmbtController,
@@ -471,14 +473,6 @@ def test_case(
             }
         }]
 
-    iteration_id = str("-".join([
-        "nbr_servers__%s" % nbr_servers,
-        "nbr_clients__%s" % nbr_clients,
-        "nbr_topics__%s" % nbr_topics,
-        "call_type__%s" % call_type,
-        "nbr_calls__%s" % nbr_calls,
-        "pause__%s" % pause]))
-
     # build the specific variables for each client/server:
     # ombt_conf = {
     #   "machine01": [confs],
@@ -486,7 +480,6 @@ def test_case(
     # }
     ombt_confs = {}
     control_bus_conf = env["control_bus_conf"]
-    topics = kwargs.pop('topics')
     for agent_desc in descs:
         machines = agent_desc["machines"]
         # make sure all the machines appears in the ombt_confs

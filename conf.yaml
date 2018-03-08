@@ -1,10 +1,10 @@
 campaign:
   test_case_1:
-    nbr_servers: [1]
-    nbr_clients: [1]
+    nbr_servers: [1, 2]
+    nbr_clients: [1, 5]
     call_type: ["rpc-call"]
-    nbr_calls: [1000]
-    pause: [0.1]
+    nbr_calls: [100]
+    pause: [0, 0]
     timeout: [8000]
     version: ["beyondtheclouds/ombt:latest"]
     length: [1024]
@@ -89,15 +89,6 @@ vagrant:
   box: bento/debian-9.1
   resources:
     machines:
-      - roles:
-        - bus
-        - telegraf
-        - chrony
-        flavor: tiny
-        number: 1
-        networks:
-          - control_network
-          - internal_network
       - roles:
         - bus
         - telegraf

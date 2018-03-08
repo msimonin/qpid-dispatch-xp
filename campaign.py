@@ -339,7 +339,10 @@ def incremental_campaign(test, provider, force, pause, conf, env):
     t.PROVIDERS[provider](force=force, config=config, env=current_env_dir)
     t.inventory()
     driver = None
+    # NOTE(msimonin): keep track on the iteration index
+    iteration_id = 0
     for current_parameters in sweeps:
+        iteration_id = iteration_id + 1
         current_driver = current_parameters.get('driver')
         # sweeps are sorted by driver so the environment will be deployed
         # only when the driver is swept. It allows to have several drivers
@@ -350,7 +353,9 @@ def incremental_campaign(test, provider, force, pause, conf, env):
             t.prepare(driver=current_driver, env=current_env_dir)
             driver = current_driver
         try:
+            current_parameters.update({'iteration_id': iteration_id})
             current_parameters.update({'backup_dir': generate_id(current_parameters)})
+            # current_parameters.update({'iteration_id': iteration_id})
             # fix number of clients and servers (or topics) to deploy
             TEST_CASES[test]['fixp'](raw_parameters, current_parameters)
             TEST_CASES[test]['defn'](**current_parameters)
