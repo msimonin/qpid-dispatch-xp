@@ -30,6 +30,7 @@ tc = {
     "default_rate": "1gbit",
 }
 
+
 def get_topics(number):
     """Create a list of topic names.
 
@@ -368,7 +369,7 @@ def prepare(driver=DRIVER, env=None, **kwargs):
 
 @enostask()
 def test_case_1(**kwargs):
-    # enforcing topic proper value in case the topics are declared in campaign
+    kwargs['nbr_topics'] = 1
     kwargs['topics'] = get_topics(1)
     test_case(**kwargs)
 
@@ -384,17 +385,19 @@ def test_case_2(**kwargs):
 
 @enostask()
 def test_case_3(**kwargs):
-    # enforcing topic proper value in case the topics are declared in campaign
     kwargs['nbr_topics'] = 1
     kwargs['call_type'] = 'rpc_cast'
+    kwargs['topics'] = get_topics(1)
     test_case(**kwargs)
 
 
 @enostask()
 def test_case_4(**kwargs):
-    kwargs['nbr_clients'] = kwargs['nbr_topics'] * kwargs['nbr_clients']
-    kwargs['nbr_servers'] = kwargs['nbr_topics'] * kwargs['nbr_servers']
+    nbr_topics = kwargs['nbr_topics']
     kwargs['call_type'] = 'rpc_cast'
+    kwargs['nbr_clients'] = nbr_topics * kwargs['nbr_clients']
+    kwargs['nbr_servers'] = nbr_topics * kwargs['nbr_servers']
+    kwargs['topics'] = get_topics(nbr_topics)
     test_case(**kwargs)
 
 

@@ -15,7 +15,6 @@ import tasks as t
 PAUSE = 1.0
 
 
-
 def filter_1(parameters):
     return filter_params(parameters, condition=lambda x: x['nbr_servers'] <= x['nbr_clients'])
 
@@ -228,10 +227,10 @@ def zip_parameters(parameters, arguments):
     >>> zip_parameters(parameters, arguments)
     []
     >>> arguments = ['nonexistent']
-    >>> zip_parameters(parameters, arguments)
+    >>> zip_parameters(parameters, arguments) # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
     ...
-    KeyError: 'nonexistent'
+    KeyError:
 
     :param parameters: dictionary containing 'key:<list of values>' elements
     :param arguments: list of keys of the elements in the dictionary to zip
@@ -248,6 +247,64 @@ def flat_sweep(parameters, key='zip'):
 
     The sweep operation is performed by invoking the sweeps function form
     the execo_engine module.
+
+    >>> parameters = {
+    ... 'call_type': ['rpc-call'],
+    ... 'nbr_calls': [1000],
+    ... 'timeout': [8000],
+    ... 'length': [1024],
+    ... 'executor': ["threading"],
+    ... 'driver': ["broker"],
+    ... 'zip': [{'nbr_servers': 1, 'pause': 0.1, 'nbr_clients': 10},
+    ...         {'nbr_servers': 2, 'pause': 0.3, 'nbr_clients': 20},
+    ...         {'nbr_servers': 3, 'pause': 0.5, 'nbr_clients': 30}]}
+    >>> flat_sweep(parameters)
+    [\
+{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading', 'nbr_servers': 1,\
+ 'nbr_calls': 1000, 'nbr_clients': 10, 'driver': 'broker', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.3, 'timeout': 8000, 'executor': 'threading', 'nbr_servers': 2,\
+ 'nbr_calls': 1000, 'nbr_clients': 20, 'driver': 'broker', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.5, 'timeout': 8000, 'executor': 'threading', 'nbr_servers': 3,\
+ 'nbr_calls': 1000, 'nbr_clients': 30, 'driver': 'broker', 'call_type': 'rpc-call'}]
+    >>> parameters.update({'zip': [{'topics': 1, 'pause': 0.1}]})
+    >>> flat_sweep(parameters)
+    [{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading', \
+'nbr_calls': 1000, 'topics': 1, 'driver': 'broker', 'call_type': 'rpc-call'}]
+    >>> parameters.update(
+    ... {'zip': [{'topics': 1, 'pause': 0.1}, {'topics': 2, 'pause': 0.2}],
+    ... 'driver': ["broker", "router"]})
+    >>> flat_sweep(parameters)
+    [\
+{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 1, 'driver': 'broker', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 1, 'driver': 'router', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 2, 'driver': 'broker', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 2, 'driver': 'router', 'call_type': 'rpc-call'}]
+    >>> parameters.update(
+    ... {'zip': [{'topics': 1, 'pause': 0.1}, {'topics': 2, 'pause': 0.2}],
+    ... 'driver': ["broker", "router"],
+    ... 'call_type': ['rpc-call', 'rpc-cast']})
+    >>> flat_sweep(parameters)
+    [\
+{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 1, 'driver': 'broker', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 1, 'driver': 'broker', 'call_type': 'rpc-cast'}, \
+{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 1, 'driver': 'router', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 1, 'driver': 'router', 'call_type': 'rpc-cast'}, \
+{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 2, 'driver': 'broker', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 2, 'driver': 'broker', 'call_type': 'rpc-cast'}, \
+{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 2, 'driver': 'router', 'call_type': 'rpc-call'}, \
+{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
+ 'nbr_calls': 1000, 'topics': 2, 'driver': 'router', 'call_type': 'rpc-cast'}]
 
     :param parameters: set of parameters to sweep
     :param key: key of the dictionary
@@ -298,6 +355,6 @@ def incremental_campaign(test, provider, force, pause, conf, env):
             TEST_CASES[test]['defn'](**current_parameters)
             dump_parameters(current_env_dir, current_parameters)
             time.sleep(pause)
-        except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+        except (EnosError, RuntimeError, ValueError, KeyError, OSError, KeyboardInterrupt) as error:
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
