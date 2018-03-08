@@ -2,6 +2,7 @@
 - name: Get docker logs from the ombt agent
   shell: "docker logs {{ item.name  }} > {{ item.log | dirname }}/{{ item.name }}_docker.log"
   with_items: "{{ ombt_confs[inventory_hostname] }}"
+  when: item.agent_type == "controller"
 
 - name: Fetching docker logs from the ombt agent
   fetch:
@@ -9,6 +10,7 @@
     dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{item.name}}_docker.log"
     flat: yes
   with_items: "{{ ombt_confs[inventory_hostname] }}"
+  when: item.agent_type == "controller"
 
 - name: Fetching omt agent output agent
   fetch:
@@ -16,3 +18,4 @@
     dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{ item.name }}.log"
     flat: yes
   with_items: "{{ ombt_confs[inventory_hostname] }}"
+  when: item.agent_type == "controller"

@@ -5,6 +5,7 @@
     mode: 0777
     state: directory
   with_items: "{{ ombt_confs[inventory_hostname] }}"
+  when: item.agent_type == "controller"
 
 - name: Create the agent output log file
   file:
@@ -12,6 +13,7 @@
     mode: 0777
     state: touch
   with_items: "{{ ombt_confs[inventory_hostname] }}"
+  when: item.agent_type == "controller"
 
 - name: Start ombt client(s) or server(s)
   docker_container:
