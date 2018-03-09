@@ -16,7 +16,7 @@ campaign:
     nbr_calls: [1000]
     pause: [0.1]
     timeout: [8000]
-    version: ["beyondtheclouds/ombt:latest"]
+    version: ["msimonin/ombt:singleton"]
     length: [1024]
     executor: ["threading"]
     driver: ["broker", "router-4"]

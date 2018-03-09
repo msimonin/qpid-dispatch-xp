@@ -380,7 +380,8 @@ def test_case_2(**kwargs):
     nbr_topics = kwargs['nbr_topics']
     kwargs['nbr_clients'] = nbr_topics
     kwargs['nbr_servers'] = nbr_topics
-    kwargs['topics'] = get_topics(nbr_topics)
+    if 'topics' not in kwargs:
+        kwargs['topics'] = get_topics(nbr_topics)
     test_case(**kwargs)
 
 
@@ -397,7 +398,8 @@ def test_case_4(**kwargs):
     kwargs['call_type'] = 'rpc_cast'
     kwargs['nbr_clients'] = nbr_topics * kwargs['nbr_clients']
     kwargs['nbr_servers'] = nbr_topics * kwargs['nbr_servers']
-    kwargs['topics'] = get_topics(nbr_topics)
+    if 'topics' not in kwargs:
+        kwargs['topics'] = get_topics(nbr_topics)
     test_case(**kwargs)
 
 
