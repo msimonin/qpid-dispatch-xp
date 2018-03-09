@@ -100,8 +100,8 @@ def fix_2(parameters, current_parameters):
     previous_nbr_topics, nbr_topics = get_current_values(parameters, current_parameters, 'nbr_topics')
     current_topics = all_topics[previous_nbr_topics:nbr_topics]
     current_parameters.update({'topics': current_topics})
-    current_parameters.update({'nbr_clients': nbr_topics})
-    current_parameters.update({'nbr_servers': nbr_topics})
+    current_parameters.update({'nbr_clients': len(current_topics)})
+    current_parameters.update({'nbr_servers': len(current_topics)})
 
 
 TEST_CASES = {
@@ -176,7 +176,7 @@ def campaign(test, provider, force, conf, env):
             TEST_CASES[test]['defn'](**current_parameters)
             sweeper.done(current_parameters)
             dump_parameters(current_env_dir, current_parameters)
-        except (EnosError, RuntimeError, ValueError, KeyError, OSError, KeyboardInterrupt) as error:
+        except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_parameters)
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
@@ -361,6 +361,8 @@ def incremental_campaign(test, provider, force, pause, conf, env):
             TEST_CASES[test]['defn'](**current_parameters)
             dump_parameters(current_env_dir, current_parameters)
             time.sleep(pause)
-        except (EnosError, RuntimeError, ValueError, KeyError, OSError, KeyboardInterrupt) as error:
+        except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
+
+    t.destroy()
