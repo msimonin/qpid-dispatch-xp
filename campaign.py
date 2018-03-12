@@ -11,7 +11,7 @@ import time
 
 import itertools
 from enoslib.errors import EnosError
-from execo_engine import sweep, ParamSweeper
+from execo_engine import sweep, ParamSweeper, HashableDict
 
 import tasks as t
 
@@ -244,6 +244,12 @@ def zip_parameters(parameters, arguments):
     return [dict(z) for z in tuples]
 
 
+def sweep_with_lists(parameters, arguments):
+    sweeps = sweep(parameters)
+    sweeps = ({k: (tuple(v) if k in arguments else v) for k, v in l.items()} for l in sweeps)
+    return [HashableDict(d) for d in sweeps]
+
+
 def incremental_campaign(test, provider, force, pause, conf, env):
     """Execute a test incrementally (reusing deployment).
 
@@ -259,7 +265,7 @@ def incremental_campaign(test, provider, force, pause, conf, env):
     arguments = TEST_CASES[test]['zip']
     # encapsulate zipped parameters in lists to avoid sweep them
     parameters = {k: ([v] if k in arguments else v) for k, v in raw_parameters.items()}
-    sweeps = sweep(parameters)
+    sweeps = sweep_with_lists(parameters)
     current_env_dir = env if env else '{}-incremental'.format(test)
     sweeper = ParamSweeper(persistence_dir=path.join(current_env_dir, 'sweeps'),
                            sweeps=sweeps,
@@ -274,11 +280,11 @@ def incremental_campaign(test, provider, force, pause, conf, env):
         group_id = groups.next()
         # use numbers (incremental) to identify iterations by group
         iterations = itertools.count()
-        current_parameters = current_group.deepcopy()
         try:
-            current_driver = current_parameters.get('driver')
+            current_driver = current_group.get('driver')
             t.prepare(driver=current_driver, env=current_env_dir)
             for fixed_parameters in zip_parameters(current_group, arguments):
+                current_parameters = current_group.copy()
                 current_parameters.update(fixed_parameters)
                 current_parameters.update({'iteration_id': '{}-{}'.format(group_id, iterations.next())})
                 current_parameters.update({'backup_dir': generate_id(current_parameters)})
