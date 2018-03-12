@@ -1,11 +1,15 @@
 from __future__ import print_function
+from __future__ import generators
 
 import json
 import operator
+import string
 from os import path
 import sys
 
 import time
+
+import itertools
 from enoslib.errors import EnosError
 from execo_engine import sweep, ParamSweeper
 
@@ -240,83 +244,6 @@ def zip_parameters(parameters, arguments):
     return [dict(z) for z in tuples]
 
 
-def flat_sweep(parameters, key='zip'):
-    """
-    Sweeps parameters and flat-merge a contained sub-dictionary identified
-    with a key.
-
-    The sweep operation is performed by invoking the sweeps function form
-    the execo_engine module.
-
-    >>> parameters = {
-    ... 'call_type': ['rpc-call'],
-    ... 'nbr_calls': [1000],
-    ... 'timeout': [8000],
-    ... 'length': [1024],
-    ... 'executor': ["threading"],
-    ... 'driver': ["broker"],
-    ... 'zip': [{'nbr_servers': 1, 'pause': 0.1, 'nbr_clients': 10},
-    ...         {'nbr_servers': 2, 'pause': 0.3, 'nbr_clients': 20},
-    ...         {'nbr_servers': 3, 'pause': 0.5, 'nbr_clients': 30}]}
-    >>> flat_sweep(parameters)
-    [\
-{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading', 'nbr_servers': 1,\
- 'nbr_calls': 1000, 'nbr_clients': 10, 'driver': 'broker', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.3, 'timeout': 8000, 'executor': 'threading', 'nbr_servers': 2,\
- 'nbr_calls': 1000, 'nbr_clients': 20, 'driver': 'broker', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.5, 'timeout': 8000, 'executor': 'threading', 'nbr_servers': 3,\
- 'nbr_calls': 1000, 'nbr_clients': 30, 'driver': 'broker', 'call_type': 'rpc-call'}]
-    >>> parameters.update({'zip': [{'topics': 1, 'pause': 0.1}]})
-    >>> flat_sweep(parameters)
-    [{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading', \
-'nbr_calls': 1000, 'topics': 1, 'driver': 'broker', 'call_type': 'rpc-call'}]
-    >>> parameters.update(
-    ... {'zip': [{'topics': 1, 'pause': 0.1}, {'topics': 2, 'pause': 0.2}],
-    ... 'driver': ["broker", "router"]})
-    >>> flat_sweep(parameters)
-    [\
-{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 1, 'driver': 'broker', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 1, 'driver': 'router', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 2, 'driver': 'broker', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 2, 'driver': 'router', 'call_type': 'rpc-call'}]
-    >>> parameters.update(
-    ... {'zip': [{'topics': 1, 'pause': 0.1}, {'topics': 2, 'pause': 0.2}],
-    ... 'driver': ["broker", "router"],
-    ... 'call_type': ['rpc-call', 'rpc-cast']})
-    >>> flat_sweep(parameters)
-    [\
-{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 1, 'driver': 'broker', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 1, 'driver': 'broker', 'call_type': 'rpc-cast'}, \
-{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 1, 'driver': 'router', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.1, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 1, 'driver': 'router', 'call_type': 'rpc-cast'}, \
-{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 2, 'driver': 'broker', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 2, 'driver': 'broker', 'call_type': 'rpc-cast'}, \
-{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 2, 'driver': 'router', 'call_type': 'rpc-call'}, \
-{'length': 1024, 'pause': 0.2, 'timeout': 8000, 'executor': 'threading',\
- 'nbr_calls': 1000, 'topics': 2, 'driver': 'router', 'call_type': 'rpc-cast'}]
-
-    :param parameters: set of parameters to sweep
-    :param key: key of the dictionary
-    :return: swept parameters
-    """
-    sweeps = sweep(parameters)
-    pops = [e.pop(key) for e in sweeps]
-    for s, p in zip(sweeps, pops):
-        s.update(p)
-    return sweeps
-
-
 def incremental_campaign(test, provider, force, pause, conf, env):
     """Execute a test incrementally (reusing deployment).
 
@@ -330,39 +257,41 @@ def incremental_campaign(test, provider, force, pause, conf, env):
     config = t.load_config(conf)
     raw_parameters = config['campaign'][test]
     arguments = TEST_CASES[test]['zip']
-    parameters = {k: v for k, v in raw_parameters.items() if k not in arguments}
-    zips = zip_parameters(raw_parameters, arguments)
-    parameters.update({'zip': zips})
-    sweeps = flat_sweep(parameters)
-    sweeps = sort_parameters(sweeps, TEST_CASES[test]['key'])
+    # encapsulate zipped parameters in lists to avoid sweep them
+    parameters = {k: ([v] if k in arguments else v) for k, v in raw_parameters.items()}
+    sweeps = sweep(parameters)
     current_env_dir = env if env else '{}-incremental'.format(test)
+    sweeper = ParamSweeper(persistence_dir=path.join(current_env_dir, 'sweeps'),
+                           sweeps=sweeps,
+                           save_sweeps=True,
+                           name=test)
     t.PROVIDERS[provider](force=force, config=config, env=current_env_dir)
     t.inventory()
-    driver = None
-    # NOTE(msimonin): keep track on the iteration index
-    iteration_id = 0
-    for current_parameters in sweeps:
-        iteration_id = iteration_id + 1
-        current_driver = current_parameters.get('driver')
-        # sweeps are sorted by driver so the environment will be deployed
-        # only when the driver is swept. It allows to have several drivers
-        # configured in the 'driver' list
-        #
-        # TODO check if we need to destroy controller agents
-        if current_driver != driver:
-            t.prepare(driver=current_driver, env=current_env_dir)
-            driver = current_driver
+    current_group = sweeper.get_next(TEST_CASES[test].get('filtr'))
+    # use uppercase letters to identify groups
+    groups = itertools.cycle(string.ascii_uppercase)
+    while current_group:
+        group_id = groups.next()
+        # use numbers (incremental) to identify iterations by group
+        iterations = itertools.count()
+        current_parameters = current_group.deepcopy()
         try:
-            current_parameters.update({'iteration_id': iteration_id})
-            current_parameters.update({'backup_dir': generate_id(current_parameters)})
-            # current_parameters.update({'iteration_id': iteration_id})
-            # fix number of clients and servers (or topics) to deploy
-            TEST_CASES[test]['fixp'](raw_parameters, current_parameters)
-            TEST_CASES[test]['defn'](**current_parameters)
-            dump_parameters(current_env_dir, current_parameters)
-            time.sleep(pause)
+            current_driver = current_parameters.get('driver')
+            t.prepare(driver=current_driver, env=current_env_dir)
+            for fixed_parameters in zip_parameters(current_group, arguments):
+                current_parameters.update(fixed_parameters)
+                current_parameters.update({'iteration_id': '{}-{}'.format(group_id, iterations.next())})
+                current_parameters.update({'backup_dir': generate_id(current_parameters)})
+                # fix number of clients and servers (or topics) to deploy
+                TEST_CASES[test]['fixp'](raw_parameters, current_parameters)
+                TEST_CASES[test]['defn'](**current_parameters)
+                time.sleep(pause)
+            sweeper.done(current_group)
+            dump_parameters(current_env_dir, current_group)
         except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+            sweeper.skip(current_group)
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
-
-    t.destroy()
+        finally:
+            t.destroy()
+            current_group = sweeper.get_next(TEST_CASES[test]['filtr'])
