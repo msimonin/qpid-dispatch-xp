@@ -178,6 +178,7 @@ class OmbtAgent(object):
         """Build the command for the ombt agent.
         """
         command = []
+        command.append("--unique")
         command.append("--timeout %s " % self.timeout)
         command.append("--topic %s " % self.topic)
         command.append(self.generate_connections())
@@ -186,7 +187,6 @@ class OmbtAgent(object):
         # if self.verbose:
         #    command.append("--output %s " % self.docker_log)
         return command
-
 
 class OmbtClient(OmbtAgent):
 
@@ -377,8 +377,8 @@ def test_case_1(**kwargs):
 
 @enostask()
 def test_case_2(**kwargs):
-    nbr_topics = kwargs['nbr_topics']
     if 'topics' not in kwargs:
+        nbr_topics = kwargs['nbr_topics']
         kwargs['topics'] = get_topics(nbr_topics)
         kwargs['nbr_clients'] = nbr_topics
         kwargs['nbr_servers'] = nbr_topics
@@ -394,9 +394,9 @@ def test_case_3(**kwargs):
 
 @enostask()
 def test_case_4(**kwargs):
-    nbr_topics = kwargs['nbr_topics']
     kwargs['call_type'] = 'rpc_cast'
     if 'topics' not in kwargs:
+        nbr_topics = kwargs['nbr_topics']
         kwargs['topics'] = get_topics(nbr_topics)
         kwargs['nbr_clients'] = nbr_topics * kwargs['nbr_clients']
         kwargs['nbr_servers'] = nbr_topics * kwargs['nbr_servers']

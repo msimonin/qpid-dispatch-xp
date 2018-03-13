@@ -291,9 +291,9 @@ def incremental_campaign(test, provider, force, pause, conf, env):
                 # fix number of clients and servers (or topics) to deploy
                 TEST_CASES[test]['fixp'](parameters, current_parameters)
                 TEST_CASES[test]['defn'](**current_parameters)
+                dump_parameters(env_dir, current_parameters)
                 time.sleep(pause)
             sweeper.done(current_group)
-            dump_parameters(env_dir, current_group)
         except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_group)
             print(error, file=sys.stderr)
