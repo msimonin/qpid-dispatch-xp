@@ -32,8 +32,8 @@ def filter_3(parameters):
 
 
 def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
-    sorted_parameters = (p for p in parameters if condition(p))
-    return sort_parameters(sorted_parameters, key)
+    filtered_parameters = (p for p in parameters if condition(p))
+    return sort_parameters(filtered_parameters, key)
 
 
 def sort_parameters(parameters, key):
@@ -245,8 +245,12 @@ def zip_parameters(parameters, arguments):
 
 
 def sweep_with_lists(parameters, arguments):
+    # pack arguments to zip in lists to avoid sweep over them
+    parameters = {k: ([v] if k in arguments else v) for k, v in parameters.items()}
     sweeps = sweep(parameters)
+    # transform list to immutable object
     sweeps = ({k: (tuple(v) if k in arguments else v) for k, v in l.items()} for l in sweeps)
+    # transform dictionaries to hashable objects
     return [HashableDict(d) for d in sweeps]
 
 
@@ -261,17 +265,13 @@ def incremental_campaign(test, provider, force, pause, conf, env):
     :param env: directory containing the environment configuration
     """
     config = t.load_config(conf)
-    raw_parameters = config['campaign'][test]
+    parameters = config['campaign'][test]
     arguments = TEST_CASES[test]['zip']
-    # encapsulate zipped parameters in lists to avoid sweep them
-    parameters = {k: ([v] if k in arguments else v) for k, v in raw_parameters.items()}
-    sweeps = sweep_with_lists(parameters)
-    current_env_dir = env if env else '{}-incremental'.format(test)
-    sweeper = ParamSweeper(persistence_dir=path.join(current_env_dir, 'sweeps'),
-                           sweeps=sweeps,
-                           save_sweeps=True,
-                           name=test)
-    t.PROVIDERS[provider](force=force, config=config, env=current_env_dir)
+    sweeps = sweep_with_lists(parameters, arguments)
+    env_dir = env if env else '{}-incremental'.format(test)
+    sweeper = ParamSweeper(persistence_dir=path.join(env_dir, 'sweeps'),
+                           sweeps=sweeps, save_sweeps=True, name=test)
+    t.PROVIDERS[provider](force=force, config=config, env=env_dir)
     t.inventory()
     current_group = sweeper.get_next(TEST_CASES[test].get('filtr'))
     # use uppercase letters to identify groups
@@ -282,18 +282,18 @@ def incremental_campaign(test, provider, force, pause, conf, env):
         iterations = itertools.count()
         try:
             current_driver = current_group.get('driver')
-            t.prepare(driver=current_driver, env=current_env_dir)
+            t.prepare(driver=current_driver, env=env_dir)
             for fixed_parameters in zip_parameters(current_group, arguments):
                 current_parameters = current_group.copy()
                 current_parameters.update(fixed_parameters)
                 current_parameters.update({'iteration_id': '{}-{}'.format(group_id, iterations.next())})
                 current_parameters.update({'backup_dir': generate_id(current_parameters)})
                 # fix number of clients and servers (or topics) to deploy
-                TEST_CASES[test]['fixp'](raw_parameters, current_parameters)
+                TEST_CASES[test]['fixp'](parameters, current_parameters)
                 TEST_CASES[test]['defn'](**current_parameters)
                 time.sleep(pause)
             sweeper.done(current_group)
-            dump_parameters(current_env_dir, current_group)
+            dump_parameters(env_dir, current_group)
         except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_group)
             print(error, file=sys.stderr)
