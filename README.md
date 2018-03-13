@@ -54,26 +54,30 @@ pip install -r requirements.txt
 
 ## Configuration
 
-All the confs are currently under the `confs` folder.
+The default configurations are currently defined in the `conf.yaml` file.
 
 ## Command line interface
 
 ```
-$)./cli.py
+> cli.py 
 Usage: cli.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --help  Show this message and exit.
 
 Commands:
-  backup       Backup the environment
-  deploy       Claim resources from a provider and configure...
-  destroy      Destroy all the running dockers (not...
-  g5k          Claim resources on Grid'5000 (from a...
-  inventory    Generate the Ansible inventory file.
-  prepare      Configure the resources.[after g5k,vagrant...
-  test_case_1  Runs the test case 1 : one single large...
-  vagrant      Claim resources on vagrant (local machine)
+  backup       Backup environment logs [after test_case_*].
+  campaign     Perform a TEST according to the (swept)...
+  deploy       Claim resources from a PROVIDER and configure...
+  destroy      Destroy all the running dockers (keeping...
+  g5k          Claim resources on Grid'5000 (frontend).
+  inventory    Generate the Ansible inventory [after g5k,...
+  prepare      Configure available resources [after g5k,...
+  test_case_1  Run the test case 1: one single large...
+  test_case_2  Run the test case 2: multiple distributed...
+  test_case_3  Run the test case 3: one single large...
+  test_case_4  Run the test case 4: multiple distributed...
+  vagrant      Claim resources on vagrant (localhost).
 ```
 
 ## Workflow to run a test case
@@ -81,13 +85,12 @@ Commands:
 
 * Deploying and launching the benchmark.
 
-
 ```
-# confs/vagrant-rabbitmq.yaml will be read
-./cli.py deploy --driver=rabbitmq vagrant
+# default confs.yaml on $PWD will be read
+> cli.py deploy --driver=rabbitmq vagrant
 
 # Launch the one benchmark
-./cli.py test_case_1 --nbr_clients 10 --nbr_servers 2
+> cli.py test_case_1 --nbr_clients 10 --nbr_servers 2
 ```
 
 > Adapt to the relevant provider (e.g `g5k`)
@@ -99,7 +102,7 @@ Grafana is available on the port 3000 of the control node (check the inventory f
 * Backuping the environment
 
 ```
-./cli.py backup
+> cli.py backup
 ```
 
 > The files retrieved by this action are located in `current/backup` dir by default.
@@ -108,16 +111,47 @@ Grafana is available on the port 3000 of the control node (check the inventory f
 
 ```
 # Preparing the next run by cleaning the environment
-./cli.py destroy
-./cli.py deploy --driver=rabbitmq vagrant
+> cli.py destroy
+> cli.py deploy --driver=rabbitmq vagrant
 
 # Next run
-./cli.py test_case_1 --nbr_clients 20 --nbr_servers 2
+> cli.py test_case_1 --nbr_clients 20 --nbr_servers 2
 ```
 
 > It's possible to force an experimentation dir with `--env mydir`
 
 > Note also that scripting from python is also possible using the function defined in `task.py`
+
+
+## Workflow to run a campaign
+
+* A campaign is a batch execution of several configurations for a given test case.
+  Deployment and execution of a benchmark is read from a configuration file. For example,
+  to run the first test case enabled on the framework run: 
+
+``` shell
+> cli.py campaign --provider g5k test_case_1
+``` 
+
+* Alternatively a campaign can be executed in a _incremental_ mode in which deployments are
+  performed only when a different `driver` or `call_type` is defined. Incremental campaigns
+  are executed with a different semantic on the parameters defined in the configuration.
+  With the incremental option the semantics is based on the combination of parameters by 
+  means of a dot product between a set of them in the configuration file (i.e., a `zip` 
+  operation between the lists of parameters). These parameters are defined by test case
+  as follows:
+
+    * Test case 1: `nbr_clients`, `nbr_servers` and `pause`
+    * Test case 2: `nbr_topics` and `pause`
+    * Test case 3: `nbr_clients`, `nbr_servers` and `pause` (only `rpc-cast` calls)
+    * Test case 4: `nbr_topics` and `pause` (only `rpc-cast` calls)
+   
+* To execute an incremental campaign be sure to use the ombt version `msimonin/ombt:singleton`
+  instead of the default and execute:  
+
+``` shell
+> cli.py campaign --incremental --provider g5k test_case_1
+``` 
 
 ## Misc.
 
