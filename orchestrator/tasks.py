@@ -5,7 +5,8 @@ import uuid
 from abc import ABCMeta, abstractmethod
 from os import path
 
-from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network, reset_network
+from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
+from enoslib.errors import EnosError
 from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
@@ -702,9 +703,8 @@ def validate(**kwargs):
 @enostask()
 def reset(**kwargs):
     env = kwargs["env"]
-    _inventory = env["inventory"]
-    roles = env["roles"]
-    reset_network(roles, _inventory)
+    # TODO expose this feature in enostask
+    raise EnosError()
 
 
 @enostask()
