@@ -1,28 +1,23 @@
 import itertools
 import json
 import os
-import sys
+import pathlib
 import uuid
 from os import path
 
 from enoslib.api import run_ansible, generate_inventory, emulate_network, \
     validate_network, reset_network
 # NOTE()msimonin) dropping the chameleon support temporary
-#from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
+# from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
-from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.infra.enos_static.provider import Static
+from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
 
 from orchestrator.constants import BACKUP_DIR, ANSIBLE_DIR, DRIVER, VERSION, MODE
 from orchestrator.ombt import OmbtClient, OmbtController, OmbtServer, \
     RabbitMQConf, QdrConf
 from orchestrator.qpid_dispatchgen import get_conf, generate, round_robin
-
-if sys.version_info[0] < 3:
-    import pathlib2 as pathlib
-else:
-    import pathlib
 
 
 def shard_value(value, shards, include_zero=False):
